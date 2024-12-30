@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
+	"log"
 
+	"github.com/eclipse/paho.mqtt.golang/packets"
 	"github.com/shibayu36/terminal-shooter/shared"
 
-	mqtt "github.com/mochi-mqtt/server/v2"
-	"github.com/mochi-mqtt/server/v2/packets"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -19,78 +17,51 @@ type HookOptions struct {
 }
 
 type Hook struct {
-	mqtt.HookBase
 	config *HookOptions
 }
 
-func (h *Hook) ID() string {
-	return "events-example"
+var _ Hooker = &Hook{}
+
+func NewHook(config *HookOptions) *Hook {
+	return &Hook{config: config}
 }
 
-func (h *Hook) Provides(b byte) bool {
-	return bytes.Contains([]byte{
-		mqtt.OnConnect,
-		mqtt.OnDisconnect,
-		mqtt.OnPublished,
-		mqtt.OnPublish,
-	}, []byte{b})
-}
-
-func (h *Hook) Init(config any) error {
-	h.Log.Info("initialised")
-	if _, ok := config.(*HookOptions); !ok && config != nil {
-		return mqtt.ErrInvalidConfigType
-	}
-
-	h.config = config.(*HookOptions)
-	return nil
-}
-
-func (h *Hook) OnConnect(cl *mqtt.Client, pk packets.Packet) error {
-	h.Log.Info("client connected", "client", cl.ID)
+func (h *Hook) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
 	h.config.game.AddPlayer(PlayerID(cl.ID), &PlayerState{Position: &Position{X: 0, Y: 0}})
+
+	// Player状態を出力
+	log.Printf("all players: %s", h.config.game.String())
+
 	return nil
 }
 
-func (h *Hook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
-	if err != nil {
-		h.Log.Info("client disconnected", "client", cl.ID, "expire", expire, "error", err)
-	} else {
-		h.Log.Info("client disconnected", "client", cl.ID, "expire", expire)
-	}
-	h.config.game.RemovePlayer(PlayerID(cl.ID))
+func (h *Hook) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error {
+	return nil
 }
 
-func (h *Hook) OnSubscribed(cl *mqtt.Client, pk packets.Packet, reasonCodes []byte) {
-	h.Log.Info(fmt.Sprintf("subscribed qos=%v", reasonCodes), "client", cl.ID, "filters", pk.Filters)
-}
-
-func (h *Hook) OnUnsubscribed(cl *mqtt.Client, pk packets.Packet) {
-	h.Log.Info("unsubscribed", "client", cl.ID, "filters", pk.Filters)
-}
-
-func (h *Hook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.Packet, error) {
-	h.Log.Info("received from client", "client", cl.ID)
-
+func (h *Hook) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 	if pk.TopicName == "player_state" {
 		playerID := PlayerID(cl.ID)
 		playerState := &shared.PlayerState{}
 		err := proto.Unmarshal(pk.Payload, playerState)
 		if err != nil {
-			h.Log.Error("failed to unmarshal player state", "error", err)
-			return pk, err
+			log.Printf("failed to unmarshal player state: %s", err)
+			return err
 		}
 		position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
 		h.config.game.UpdatePlayerPosition(playerID, position)
 
-		h.Log.Info("all players", "players", h.config.game.String())
+		log.Printf("all players: %s", h.config.game.String())
 	} else {
-		h.Log.Error("invalid topic name", "topic", pk.TopicName)
+		log.Printf("invalid topic name: %s", pk.TopicName)
 	}
 
-	return pk, nil
+	return nil
 }
 
-func (h *Hook) OnPublished(cl *mqtt.Client, pk packets.Packet) {
-	h.Log.Info("published to client", "client", cl.ID, "payload", string(pk.Payload))
+func (h *Hook) OnDisconnect(cl *Client, pk *packets.DisconnectPacket) error {
+	log.Printf("client disconnected: %s", cl.ID)
+	h.config.game.RemovePlayer(PlayerID(cl.ID))
+
+	return nil
 }

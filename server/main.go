@@ -18,7 +18,9 @@ func main() {
 		done <- true
 	}()
 
-	server, err := NewServer(":1883")
+	hook := NewHook(&HookOptions{game: NewGameState()})
+
+	server, err := NewServer(":1883", hook)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,33 +30,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
-
-	// // MQTTサーバーの作成
-	// server := mqtt.New(&mqtt.Options{})
-	// // 今回は認証なし
-	// _ = server.AddHook(new(auth.AllowHook), nil)
-
-	// // TCPリスナーの追加
-	// tcp := listeners.NewTCP(listeners.Config{ID: "t1", Address: ":1883"})
-	// err := server.AddListener(tcp)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// // サーバーにフックを追加
-	// game := NewGameState()
-	// err = server.AddHook(new(Hook), &HookOptions{game: game})
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// // サーバーの起動
-	// go func() {
-	// 	err := server.Serve()
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// }()
 
 	// サーバーが中断されるまで実行
 	<-done

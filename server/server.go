@@ -12,10 +12,17 @@ import (
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
+type Hooker interface {
+	OnConnect(client *Client, packet *packets.ConnectPacket) error
+	OnPublish(client *Client, packet *packets.PublishPacket) error
+	OnSubscribe(client *Client, packet *packets.SubscribePacket) error
+	OnDisconnect(client *Client, packet *packets.DisconnectPacket) error
+}
+
 // Server represents the MQTT server
 type Server struct {
 	listener net.Listener
-
+	hook     Hooker
 	// クライアント管理
 	clients    map[string]*Client
 	clientsMux sync.RWMutex
@@ -32,7 +39,7 @@ type Client struct {
 	sendMux sync.Mutex
 }
 
-func NewServer(address string) (*Server, error) {
+func NewServer(address string, hook Hooker) (*Server, error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, err
@@ -40,6 +47,7 @@ func NewServer(address string) (*Server, error) {
 
 	return &Server{
 		listener: listener,
+		hook:     hook,
 		clients:  make(map[string]*Client),
 	}, nil
 }
@@ -166,12 +174,16 @@ func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error 
 
 	s.addClient(client)
 
+	if err := s.hook.OnConnect(client, cp); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // handlePublish handles PUBLISH packets
 func (s *Server) handlePublish(client *Client, pp *packets.PublishPacket) error {
-	log.Printf("Received publish packet: %+v\n", pp)
+	log.Printf("Received publish packet: %s\n", pp.TopicName)
 
 	// 購読者全員にメッセージを配信
 	for _, client := range s.clients {
@@ -189,6 +201,10 @@ func (s *Server) handlePublish(client *Client, pp *packets.PublishPacket) error 
 		}
 	}
 
+	if err := s.hook.OnPublish(client, pp); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -201,12 +217,21 @@ func (s *Server) handleSubscribe(client *Client, sp *packets.SubscribePacket) er
 		return fmt.Errorf("failed to write suback packet: %w", err)
 	}
 
+	if err := s.hook.OnSubscribe(client, sp); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // handleDisconnect handles DISCONNECT packets
 func (s *Server) handleDisconnect(client *Client, dp *packets.DisconnectPacket) error {
 	s.removeClient(client)
+
+	if err := s.hook.OnDisconnect(client, dp); err != nil {
+		return err
+	}
+
 	return nil
 }
 
