@@ -12,25 +12,22 @@ import (
 // MQTTのパケット送受信のフックを実装する
 // 実質ハンドラーとしての役割を持つ
 
-type HookOptions struct {
-	game *GameState
-}
-
 type Hook struct {
-	config *HookOptions
+	broker *Broker
+	game   *GameState
 }
 
 var _ Hooker = &Hook{}
 
-func NewHook(config *HookOptions) *Hook {
-	return &Hook{config: config}
+func NewHook(broker *Broker, game *GameState) *Hook {
+	return &Hook{broker: broker, game: game}
 }
 
 func (h *Hook) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
-	h.config.game.AddPlayer(PlayerID(cl.ID), &PlayerState{Position: &Position{X: 0, Y: 0}})
+	h.game.AddPlayer(PlayerID(cl.ID), &PlayerState{Position: &Position{X: 0, Y: 0}})
 
 	// Player状態を出力
-	log.Printf("all players: %s", h.config.game.String())
+	log.Printf("all players: %s", h.game.String())
 
 	return nil
 }
@@ -49,9 +46,11 @@ func (h *Hook) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 			return err
 		}
 		position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
-		h.config.game.UpdatePlayerPosition(playerID, position)
+		h.game.UpdatePlayerPosition(playerID, position)
 
-		log.Printf("all players: %s", h.config.game.String())
+		h.broker.Broadcast("player_state", pk.Payload)
+
+		log.Printf("all players: %s", h.game.String())
 	} else {
 		log.Printf("invalid topic name: %s", pk.TopicName)
 	}
@@ -61,7 +60,7 @@ func (h *Hook) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 
 func (h *Hook) OnDisconnect(cl *Client, pk *packets.DisconnectPacket) error {
 	log.Printf("client disconnected: %s", cl.ID)
-	h.config.game.RemovePlayer(PlayerID(cl.ID))
+	h.game.RemovePlayer(PlayerID(cl.ID))
 
 	return nil
 }

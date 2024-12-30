@@ -181,9 +181,6 @@ func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error 
 func (s *Server) handlePublish(client *Client, pp *packets.PublishPacket) error {
 	log.Printf("Received publish packet: %s\n", pp.TopicName)
 
-	// 購読者全員にメッセージを配信
-	s.broker.Broadcast(pp.TopicName, pp.Payload)
-
 	if err := s.hook.OnPublish(client, pp); err != nil {
 		return err
 	}
