@@ -98,13 +98,7 @@ func (g *Game) draw() {
 	style := tcell.StyleDefault.Foreground(tcell.ColorWhite)
 	for y := 0; y < g.height; y++ {
 		for x := 0; x < g.width; x++ {
-			if x == 0 || x == g.width-1 {
-				g.screen.SetContent(x, y, '|', nil, style)
-			} else if y == 0 || y == g.height-1 {
-				g.screen.SetContent(x, y, '-', nil, style)
-			} else {
-				g.screen.SetContent(x, y, '.', nil, style)
-			}
+			g.screen.SetContent(x, y, '.', nil, style)
 		}
 	}
 
