@@ -1,4 +1,4 @@
-module github.com/shibayu36/terminal-shooter/client
+module github.com/shibayu36/terminal-shooter
 
 go 1.23.2
 
