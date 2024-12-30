@@ -4,15 +4,23 @@ import (
 	"log"
 	"time"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gdamore/tcell/v2"
+	"github.com/google/uuid"
+	"github.com/shibayu36/terminal-shooter/shared"
+	"google.golang.org/protobuf/proto"
 )
 
 type Game struct {
+	mqtt       mqtt.Client
+	myPlayerID string
+
 	screen tcell.Screen
 	player struct {
 		x, y int
 	}
-	width, height int
+	width  int
+	height int
 }
 
 func NewGame() (*Game, error) {
@@ -25,10 +33,23 @@ func NewGame() (*Game, error) {
 		return nil, err
 	}
 
+	// MQTTクライアントの設定
+	clientID := uuid.New().String()
+	opts := mqtt.NewClientOptions().
+		AddBroker("tcp://localhost:1883").
+		SetClientID(clientID)
+
+	client := mqtt.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		return nil, token.Error()
+	}
+
 	game := &Game{
-		screen: screen,
-		width:  30,
-		height: 30,
+		mqtt:       client,
+		myPlayerID: clientID,
+		screen:     screen,
+		width:      30,
+		height:     30,
 	}
 
 	// プレイヤーを中央に配置
@@ -64,9 +85,33 @@ func (g *Game) Run() {
 	}
 }
 
+func (g *Game) publishMyState() {
+	state := &shared.PlayerState{
+		PlayerId: g.myPlayerID,
+		Position: &shared.Position{
+			X: int32(g.player.x),
+			Y: int32(g.player.y),
+		},
+	}
+
+	data, err := proto.Marshal(state)
+	if err != nil {
+		log.Printf("Failed to encode position: %v", err)
+		return
+	}
+
+	token := g.mqtt.Publish("player_state", 0, false, data)
+	if token.Wait() && token.Error() != nil {
+		log.Printf("Failed to publish position: %v", token.Error())
+		return
+	}
+}
+
 func (g *Game) handleEvent(event tcell.Event) bool {
 	switch ev := event.(type) {
 	case *tcell.EventKey:
+		oldX, oldY := g.player.x, g.player.y
+
 		switch ev.Key() {
 		case tcell.KeyEscape, tcell.KeyCtrlC:
 			return true
@@ -86,6 +131,11 @@ func (g *Game) handleEvent(event tcell.Event) bool {
 			if g.player.y < g.height-1 {
 				g.player.y++
 			}
+		}
+
+		// 位置が変更されたら自分の位置をサーバーに送る
+		if oldX != g.player.x || oldY != g.player.y {
+			g.publishMyState()
 		}
 	}
 	return false

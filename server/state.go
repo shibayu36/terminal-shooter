@@ -1,7 +1,12 @@
 package main
 
-import "sync"
+import (
+	"bytes"
+	"fmt"
+	"sync"
+)
 
+type GameID string
 type PlayerID string
 
 // 1つのゲーム内の状態を管理する
@@ -43,6 +48,19 @@ func (gs *GameState) GetPlayers() map[PlayerID]*PlayerState {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
 	return gs.Players
+}
+
+// GetState ゲームの状態をデバッグ用に表示する
+func (gs *GameState) String() string {
+	gs.mu.RLock()
+	defer gs.mu.RUnlock()
+
+	buf := bytes.NewBufferString("")
+	for playerID, player := range gs.Players {
+		fmt.Fprintf(buf, "Player: %s, Position: %v\n", string(playerID), player.Position)
+	}
+
+	return buf.String()
 }
 
 // プレイヤーの状態を管理する

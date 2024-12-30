@@ -34,7 +34,8 @@ func main() {
 	}
 
 	// サーバーにフックを追加
-	err = server.AddHook(new(Hook), nil)
+	game := NewGameState()
+	err = server.AddHook(new(Hook), &HookOptions{game: game})
 	if err != nil {
 		log.Fatal(err)
 	}
