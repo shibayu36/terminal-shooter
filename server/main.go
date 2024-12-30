@@ -5,10 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
-	mqtt "github.com/mochi-mqtt/server/v2"
-	"github.com/mochi-mqtt/server/v2/hooks/auth"
-	"github.com/mochi-mqtt/server/v2/listeners"
+	"time"
 )
 
 func main() {
@@ -21,37 +18,52 @@ func main() {
 		done <- true
 	}()
 
-	// MQTTサーバーの作成
-	server := mqtt.New(&mqtt.Options{})
-	// 今回は認証なし
-	_ = server.AddHook(new(auth.AllowHook), nil)
-
-	// TCPリスナーの追加
-	tcp := listeners.NewTCP(listeners.Config{ID: "t1", Address: ":1883"})
-	err := server.AddListener(tcp)
+	server, err := NewServer(":1883")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// サーバーにフックを追加
-	game := NewGameState()
-	err = server.AddHook(new(Hook), &HookOptions{game: game})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// サーバーの起動
 	go func() {
-		err := server.Serve()
-		if err != nil {
+		if err := server.Serve(); err != nil {
 			log.Fatal(err)
 		}
 	}()
 
+	// // MQTTサーバーの作成
+	// server := mqtt.New(&mqtt.Options{})
+	// // 今回は認証なし
+	// _ = server.AddHook(new(auth.AllowHook), nil)
+
+	// // TCPリスナーの追加
+	// tcp := listeners.NewTCP(listeners.Config{ID: "t1", Address: ":1883"})
+	// err := server.AddListener(tcp)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// // サーバーにフックを追加
+	// game := NewGameState()
+	// err = server.AddHook(new(Hook), &HookOptions{game: game})
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// // サーバーの起動
+	// go func() {
+	// 	err := server.Serve()
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }()
+
 	// サーバーが中断されるまで実行
 	<-done
 
-	server.Log.Warn("caught signal, stopping...")
-	_ = server.Close()
-	server.Log.Info("main.go finished")
+	if err := server.Shutdown(10 * time.Second); err != nil {
+		log.Fatal(err)
+	}
+
+	// server.Log.Warn("caught signal, stopping...")
+	// _ = server.Close()
+	// server.Log.Info("main.go finished")
 }
