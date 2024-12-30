@@ -68,7 +68,7 @@ func (g *Game) handleEvent(event tcell.Event) bool {
 	switch ev := event.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
-		case tcell.KeyEscape:
+		case tcell.KeyEscape, tcell.KeyCtrlC:
 			return true
 		case tcell.KeyLeft:
 			if g.player.x > 0 {
