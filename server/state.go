@@ -2,42 +2,44 @@ package main
 
 import "sync"
 
+type PlayerID string
+
 // 1つのゲーム内の状態を管理する
 type GameState struct {
 	mu sync.RWMutex
 
-	Players map[string]*PlayerState
+	Players map[PlayerID]*PlayerState
 }
 
 func NewGameState() *GameState {
 	return &GameState{
-		Players: make(map[string]*PlayerState),
+		Players: make(map[PlayerID]*PlayerState),
 	}
 }
 
 // プレイヤーを追加する
-func (gs *GameState) AddPlayer(playerID string, state *PlayerState) {
+func (gs *GameState) AddPlayer(playerID PlayerID, state *PlayerState) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	gs.Players[playerID] = state
 }
 
 // プレイヤーを削除する
-func (gs *GameState) RemovePlayer(playerID string) {
+func (gs *GameState) RemovePlayer(playerID PlayerID) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	delete(gs.Players, playerID)
 }
 
 // プレイヤーの位置を更新する
-func (gs *GameState) UpdatePlayerPosition(playerID string, position *Position) {
+func (gs *GameState) UpdatePlayerPosition(playerID PlayerID, position *Position) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	gs.Players[playerID].Position = position
 }
 
 // プレイヤー一覧を取得する
-func (gs *GameState) GetPlayers() map[string]*PlayerState {
+func (gs *GameState) GetPlayers() map[PlayerID]*PlayerState {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
 	return gs.Players
