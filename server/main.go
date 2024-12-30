@@ -18,9 +18,10 @@ func main() {
 		done <- true
 	}()
 
+	broker := NewBroker()
 	hook := NewHook(&HookOptions{game: NewGameState()})
 
-	server, err := NewServer(":1883", hook)
+	server, err := NewServer(":1883", hook, broker)
 	if err != nil {
 		log.Fatal(err)
 	}

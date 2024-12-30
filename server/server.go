@@ -23,9 +23,9 @@ type Hooker interface {
 type Server struct {
 	listener net.Listener
 	hook     Hooker
+
 	// クライアント管理
-	clients    map[string]*Client
-	clientsMux sync.RWMutex
+	broker *Broker
 
 	// サーバーの終了待ち
 	inShutdown atomic.Bool
@@ -39,7 +39,7 @@ type Client struct {
 	sendMux sync.Mutex
 }
 
-func NewServer(address string, hook Hooker) (*Server, error) {
+func NewServer(address string, hook Hooker, broker *Broker) (*Server, error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func NewServer(address string, hook Hooker) (*Server, error) {
 	return &Server{
 		listener: listener,
 		hook:     hook,
-		clients:  make(map[string]*Client),
+		broker:   broker,
 	}, nil
 }
 
@@ -84,11 +84,7 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 	}
 
 	// すべての接続を閉じる
-	s.clientsMux.Lock()
-	for _, client := range s.clients {
-		client.Conn.Close()
-	}
-	s.clientsMux.Unlock()
+	s.broker.CloseAll()
 
 	// タイムアウト付きでgoroutineの終了を待つ
 	done := make(chan struct{})
@@ -109,7 +105,7 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 
 func (s *Server) handleConnection(client *Client) {
 	defer func() {
-		s.removeClient(client)
+		s.broker.RemoveClient(client)
 		client.Conn.Close()
 		s.wg.Done()
 	}()
@@ -172,7 +168,7 @@ func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error 
 	// クライアントの登録
 	client.ID = cp.ClientIdentifier
 
-	s.addClient(client)
+	s.broker.AddClient(client)
 
 	if err := s.hook.OnConnect(client, cp); err != nil {
 		return err
@@ -186,20 +182,7 @@ func (s *Server) handlePublish(client *Client, pp *packets.PublishPacket) error 
 	log.Printf("Received publish packet: %s\n", pp.TopicName)
 
 	// 購読者全員にメッセージを配信
-	for _, client := range s.clients {
-		publishPacket := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
-		publishPacket.TopicName = pp.TopicName
-		publishPacket.Payload = pp.Payload
-		publishPacket.Qos = pp.Qos
-
-		client.sendMux.Lock()
-		err := publishPacket.Write(client.Conn)
-		client.sendMux.Unlock()
-
-		if err != nil {
-			log.Printf("Error sending to subscriber %s: %v\n", client.ID, err)
-		}
-	}
+	s.broker.Broadcast(pp.TopicName, pp.Payload)
 
 	if err := s.hook.OnPublish(client, pp); err != nil {
 		return err
@@ -226,23 +209,11 @@ func (s *Server) handleSubscribe(client *Client, sp *packets.SubscribePacket) er
 
 // handleDisconnect handles DISCONNECT packets
 func (s *Server) handleDisconnect(client *Client, dp *packets.DisconnectPacket) error {
-	s.removeClient(client)
+	s.broker.RemoveClient(client)
 
 	if err := s.hook.OnDisconnect(client, dp); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (s *Server) addClient(client *Client) {
-	s.clientsMux.Lock()
-	s.clients[client.ID] = client
-	s.clientsMux.Unlock()
-}
-
-func (s *Server) removeClient(client *Client) {
-	s.clientsMux.Lock()
-	delete(s.clients, client.ID)
-	s.clientsMux.Unlock()
 }
