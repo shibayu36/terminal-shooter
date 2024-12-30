@@ -101,7 +101,7 @@ func (g *Game) draw() {
 			if x == 0 || x == g.width-1 || y == 0 || y == g.height-1 {
 				g.screen.SetContent(x, y, '□', nil, style)
 			} else {
-				g.screen.SetContent(x, y, '・', nil, style)
+				g.screen.SetContent(x, y, '.', nil, style)
 			}
 		}
 	}
