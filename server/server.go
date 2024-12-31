@@ -28,7 +28,8 @@ type Server struct {
 	// クライアント管理
 	broker *Broker
 
-	// サーバーの終了待ち
+	// サーバーの終了のため
+	activeConn map[net.Conn]struct{}
 	inShutdown atomic.Bool
 	wg         sync.WaitGroup
 }
@@ -43,6 +44,8 @@ func NewServer(address string, hook Hooker, broker *Broker) (*Server, error) {
 		listener: listener,
 		hook:     hook,
 		broker:   broker,
+
+		activeConn: make(map[net.Conn]struct{}),
 	}, nil
 }
 
@@ -59,12 +62,8 @@ func (s *Server) Serve() error {
 			return errors.Wrap(err, "failed to accept connection")
 		}
 
-		client := &Client{
-			Conn: conn,
-		}
-
 		s.wg.Add(1)
-		go s.handleConnection(client)
+		go s.handleConnection(conn)
 	}
 }
 
@@ -76,8 +75,10 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 		return errors.Wrap(err, "error closing listener")
 	}
 
-	// すべての接続を閉じる
-	s.broker.CloseAll()
+	for conn := range s.activeConn {
+		slog.Info("Closing connection", "address", conn.RemoteAddr())
+		conn.Close()
+	}
 
 	// タイムアウト付きでgoroutineの終了を待つ
 	done := make(chan struct{})
@@ -96,24 +97,31 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 	return nil
 }
 
-func (s *Server) handleConnection(client *Client) {
+func (s *Server) handleConnection(conn net.Conn) {
+	s.activeConn[conn] = struct{}{}
+
+	client := &Client{
+		Conn: conn,
+	}
+
 	defer func() {
 		s.broker.RemoveClient(client)
-		client.Conn.Close()
+		conn.Close()
+		delete(s.activeConn, conn)
 		s.wg.Done()
 	}()
 
-	slog.Info("New client connected", "address", client.Conn.RemoteAddr())
+	slog.Info("New client connected", "address", conn.RemoteAddr())
 
 	for {
-		packet, err := packets.ReadPacket(client.Conn)
+		packet, err := packets.ReadPacket(conn)
 		if err != nil {
 			if s.inShutdown.Load() {
 				return
 			}
 
 			if err == io.EOF {
-				slog.Info("Client disconnected", "address", client.Conn.RemoteAddr())
+				slog.Info("Client disconnected", "address", conn.RemoteAddr())
 				return
 			}
 

@@ -32,14 +32,6 @@ func (b *Broker) RemoveClient(client *Client) {
 	delete(b.clients, client.ID)
 }
 
-func (b *Broker) CloseAll() {
-	b.clientsMux.Lock()
-	defer b.clientsMux.Unlock()
-	for _, client := range b.clients {
-		client.Conn.Close()
-	}
-}
-
 // Broadcast クライアント全員にメッセージを配信する
 func (b *Broker) Broadcast(topic string, payload []byte) {
 	b.clientsMux.RLock()
