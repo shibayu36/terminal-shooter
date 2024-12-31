@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -53,7 +53,7 @@ func NewServer(address string, hook Hooker, broker *Broker) (*Server, error) {
 }
 
 func (s *Server) Serve() error {
-	log.Printf("MQTT Server listening on %s\n", s.listener.Addr())
+	slog.Info("MQTT Server listening", "address", s.listener.Addr())
 
 	for {
 		conn, err := s.listener.Accept()
@@ -62,7 +62,7 @@ func (s *Server) Serve() error {
 				return nil
 			}
 
-			log.Printf("Failed to accept connection: %v", err)
+			slog.Error("Failed to accept connection", "error", err)
 			return err
 		}
 
@@ -76,7 +76,7 @@ func (s *Server) Serve() error {
 }
 
 func (s *Server) Shutdown(timeout time.Duration) error {
-	log.Println("Shutting down server...")
+	slog.Info("Shutting down server...")
 	s.inShutdown.Store(true)
 
 	if err := s.listener.Close(); err != nil {
@@ -95,7 +95,7 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 
 	select {
 	case <-done:
-		log.Println("Server shutdown complete")
+		slog.Info("Server shutdown complete")
 	case <-time.After(timeout):
 		return fmt.Errorf("shutdown timed out")
 	}
@@ -110,7 +110,7 @@ func (s *Server) handleConnection(client *Client) {
 		s.wg.Done()
 	}()
 
-	log.Printf("New client connected: %s\n", client.Conn.RemoteAddr())
+	slog.Info("New client connected", "address", client.Conn.RemoteAddr())
 
 	for {
 		packet, err := packets.ReadPacket(client.Conn)
@@ -120,16 +120,16 @@ func (s *Server) handleConnection(client *Client) {
 			}
 
 			if err == io.EOF {
-				log.Printf("Client disconnected: %s\n", client.Conn.RemoteAddr())
+				slog.Info("Client disconnected", "address", client.Conn.RemoteAddr())
 				return
 			}
 
-			log.Printf("Error reading packet: %v\n", err)
+			slog.Error("Error reading packet", "error", err)
 			return
 		}
 
 		if err := s.handlePacket(client, packet); err != nil {
-			log.Printf("Error handling packet: %v\n", err)
+			slog.Error("Error handling packet", "error", err)
 			return
 		}
 	}
@@ -179,7 +179,7 @@ func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error 
 
 // handlePublish handles PUBLISH packets
 func (s *Server) handlePublish(client *Client, pp *packets.PublishPacket) error {
-	log.Printf("Received publish packet: %s\n", pp.TopicName)
+	slog.Info("Received publish packet", "topic", pp.TopicName)
 
 	if err := s.hook.OnPublished(client, pp); err != nil {
 		return err

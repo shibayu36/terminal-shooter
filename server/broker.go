@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
@@ -56,7 +56,7 @@ func (b *Broker) Broadcast(topic string, payload []byte) {
 		client.sendMux.Unlock()
 
 		if err != nil {
-			log.Printf("Error sending to subscriber %s: %v\n", client.ID, err)
+			slog.Error("Error sending to subscriber", "client_id", client.ID, "error", err)
 		}
 	}
 }

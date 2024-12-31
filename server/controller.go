@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
 	"github.com/shibayu36/terminal-shooter/shared"
@@ -25,7 +25,7 @@ func (c *Controller) OnConnected(cl *Client, pk *packets.ConnectPacket) error {
 	c.game.AddPlayer(PlayerID(cl.ID), &PlayerState{Position: &Position{X: 0, Y: 0}})
 
 	// Player状態を出力
-	log.Printf("all players: %s", c.game.String())
+	slog.Info("all players", "players", c.game.String())
 
 	return nil
 }
@@ -46,15 +46,15 @@ func (c *Controller) OnSubscribed(cl *Client, pk *packets.SubscribePacket) error
 		}
 		payload, err := proto.Marshal(playerState)
 		if err != nil {
-			log.Printf("failed to marshal player state: %s", err)
+			slog.Error("failed to marshal player state", "error", err)
 			return err
 		}
 
-		log.Printf("send player state on subscribe: %s", playerState.String())
+		slog.Info("send player state on subscribe", "player", playerState.String())
 
 		err = c.broker.Send(cl.ID, "player_state", payload)
 		if err != nil {
-			log.Printf("failed to send player state: %s", err)
+			slog.Error("failed to send player state", "error", err)
 			return err
 		}
 	}
@@ -67,14 +67,14 @@ func (c *Controller) OnPublished(cl *Client, pk *packets.PublishPacket) error {
 	case "player_state":
 		return c.onReceivePlayerState(cl, pk)
 	default:
-		log.Printf("invalid topic name: %s", pk.TopicName)
+		slog.Error("invalid topic name", "topic", pk.TopicName)
 	}
 
 	return nil
 }
 
 func (c *Controller) OnDisconnected(cl *Client, pk *packets.DisconnectPacket) error {
-	log.Printf("client disconnected: %s", cl.ID)
+	slog.Info("client disconnected", "client_id", cl.ID)
 	c.game.RemovePlayer(PlayerID(cl.ID))
 
 	// TODO: Disconnectしたら、他のクライアントにそのクライアントが消えたことを通知する
@@ -88,7 +88,7 @@ func (c *Controller) onReceivePlayerState(cl *Client, pk *packets.PublishPacket)
 	playerState := &shared.PlayerState{}
 	err := proto.Unmarshal(pk.Payload, playerState)
 	if err != nil {
-		log.Printf("failed to unmarshal player state: %s", err)
+		slog.Error("failed to unmarshal player state", "error", err)
 		return err
 	}
 	position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
@@ -96,7 +96,7 @@ func (c *Controller) onReceivePlayerState(cl *Client, pk *packets.PublishPacket)
 
 	c.broker.Broadcast("player_state", pk.Payload)
 
-	log.Printf("all players: %s", c.game.String())
+	slog.Info("all players", "players", c.game.String())
 
 	return nil
 }
