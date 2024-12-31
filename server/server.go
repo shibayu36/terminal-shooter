@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
-	"github.com/pkg/errors"
 )
 
 type Hooker interface {
