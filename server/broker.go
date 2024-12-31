@@ -43,10 +43,7 @@ func (b *Broker) Broadcast(topic string, payload []byte) {
 	publishPacket.Qos = 0
 
 	for _, client := range b.clients {
-		client.sendMux.Lock()
-		err := publishPacket.Write(client.Conn)
-		client.sendMux.Unlock()
-
+		err := client.Publish(publishPacket)
 		if err != nil {
 			slog.Error("Error sending to subscriber", "client_id", client.ID, "error", err)
 		}
@@ -65,13 +62,5 @@ func (b *Broker) Send(clientID string, topic string, payload []byte) error {
 	publishPacket.Payload = payload
 	publishPacket.Qos = 0
 
-	client.sendMux.Lock()
-	err := publishPacket.Write(client.Conn)
-	client.sendMux.Unlock()
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return client.Publish(publishPacket)
 }
