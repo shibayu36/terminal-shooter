@@ -21,7 +21,7 @@ func NewController(broker *Broker, game *GameState) *Controller {
 	return &Controller{broker: broker, game: game}
 }
 
-func (c *Controller) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
+func (c *Controller) OnConnected(cl *Client, pk *packets.ConnectPacket) error {
 	c.game.AddPlayer(PlayerID(cl.ID), &PlayerState{Position: &Position{X: 0, Y: 0}})
 
 	// Player状態を出力
@@ -30,7 +30,7 @@ func (c *Controller) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
 	return nil
 }
 
-func (c *Controller) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error {
+func (c *Controller) OnSubscribed(cl *Client, pk *packets.SubscribePacket) error {
 	// Subscribeが来たら、現在の他プレイヤーの位置をそのクライアントに送信する
 	for playerID, player := range c.game.GetPlayers() {
 		if playerID == PlayerID(cl.ID) {
@@ -62,7 +62,7 @@ func (c *Controller) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error 
 	return nil
 }
 
-func (c *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
+func (c *Controller) OnPublished(cl *Client, pk *packets.PublishPacket) error {
 	switch pk.TopicName {
 	case "player_state":
 		return c.onReceivePlayerState(cl, pk)
@@ -73,9 +73,11 @@ func (c *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 	return nil
 }
 
-func (c *Controller) OnDisconnect(cl *Client, pk *packets.DisconnectPacket) error {
+func (c *Controller) OnDisconnected(cl *Client, pk *packets.DisconnectPacket) error {
 	log.Printf("client disconnected: %s", cl.ID)
 	c.game.RemovePlayer(PlayerID(cl.ID))
+
+	// TODO: Disconnectしたら、他のクライアントにそのクライアントが消えたことを通知する
 
 	return nil
 }

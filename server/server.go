@@ -13,10 +13,10 @@ import (
 )
 
 type Hooker interface {
-	OnConnect(client *Client, packet *packets.ConnectPacket) error
-	OnPublish(client *Client, packet *packets.PublishPacket) error
-	OnSubscribe(client *Client, packet *packets.SubscribePacket) error
-	OnDisconnect(client *Client, packet *packets.DisconnectPacket) error
+	OnConnected(client *Client, packet *packets.ConnectPacket) error
+	OnPublished(client *Client, packet *packets.PublishPacket) error
+	OnSubscribed(client *Client, packet *packets.SubscribePacket) error
+	OnDisconnected(client *Client, packet *packets.DisconnectPacket) error
 }
 
 // Server represents the MQTT server
@@ -170,7 +170,7 @@ func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error 
 
 	s.broker.AddClient(client)
 
-	if err := s.hook.OnConnect(client, cp); err != nil {
+	if err := s.hook.OnConnected(client, cp); err != nil {
 		return err
 	}
 
@@ -181,7 +181,7 @@ func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error 
 func (s *Server) handlePublish(client *Client, pp *packets.PublishPacket) error {
 	log.Printf("Received publish packet: %s\n", pp.TopicName)
 
-	if err := s.hook.OnPublish(client, pp); err != nil {
+	if err := s.hook.OnPublished(client, pp); err != nil {
 		return err
 	}
 
@@ -197,7 +197,7 @@ func (s *Server) handleSubscribe(client *Client, sp *packets.SubscribePacket) er
 		return fmt.Errorf("failed to write suback packet: %w", err)
 	}
 
-	if err := s.hook.OnSubscribe(client, sp); err != nil {
+	if err := s.hook.OnSubscribed(client, sp); err != nil {
 		return err
 	}
 
@@ -208,7 +208,7 @@ func (s *Server) handleSubscribe(client *Client, sp *packets.SubscribePacket) er
 func (s *Server) handleDisconnect(client *Client, dp *packets.DisconnectPacket) error {
 	s.broker.RemoveClient(client)
 
-	if err := s.hook.OnDisconnect(client, dp); err != nil {
+	if err := s.hook.OnDisconnected(client, dp); err != nil {
 		return err
 	}
 
