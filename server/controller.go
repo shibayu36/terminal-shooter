@@ -31,6 +31,34 @@ func (c *Controller) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
 }
 
 func (c *Controller) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error {
+	// Subscribeが来たら、現在の他プレイヤーの位置をそのクライアントに送信する
+	for playerID, player := range c.game.GetPlayers() {
+		if playerID == PlayerID(cl.ID) {
+			continue
+		}
+
+		playerState := &shared.PlayerState{
+			PlayerId: string(playerID),
+			Position: &shared.Position{
+				X: int32(player.Position.X),
+				Y: int32(player.Position.Y),
+			},
+		}
+		payload, err := proto.Marshal(playerState)
+		if err != nil {
+			log.Printf("failed to marshal player state: %s", err)
+			return err
+		}
+
+		log.Printf("send player state on subscribe: %s", playerState.String())
+
+		err = c.broker.Send(cl.ID, "player_state", payload)
+		if err != nil {
+			log.Printf("failed to send player state: %s", err)
+			return err
+		}
+	}
+
 	return nil
 }
 

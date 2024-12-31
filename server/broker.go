@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"sync"
 
@@ -58,4 +59,27 @@ func (b *Broker) Broadcast(topic string, payload []byte) {
 			log.Printf("Error sending to subscriber %s: %v\n", client.ID, err)
 		}
 	}
+}
+
+// 特定のクライアントにメッセージを送信する
+func (b *Broker) Send(clientID string, topic string, payload []byte) error {
+	client := b.clients[clientID]
+	if client == nil {
+		return errors.New("client not found")
+	}
+
+	publishPacket := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
+	publishPacket.TopicName = topic
+	publishPacket.Payload = payload
+	publishPacket.Qos = 0
+
+	client.sendMux.Lock()
+	err := publishPacket.Write(client.Conn)
+	client.sendMux.Unlock()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

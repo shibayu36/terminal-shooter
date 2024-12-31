@@ -75,12 +75,17 @@ func NewGame() (*Game, error) {
 		return nil, token.Error()
 	}
 
+	// 自分の初期位置を送信
+	game.publishMyState()
 	return game, nil
 }
 
 func (g *Game) Run() {
-	// 終了時に画面をクリア
-	defer g.screen.Fini()
+	// 終了時に接続や画面をクリア
+	defer func() {
+		g.screen.Fini()
+		g.mqtt.Disconnect(250)
+	}()
 
 	// イベントチャンネル
 	eventChan := make(chan tcell.Event)
