@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -62,10 +63,10 @@ func NewGame() (*Game, error) {
 		players:    make(map[string]*Player),
 	}
 
-	// プレイヤーを中央に配置
+	// プレイヤーをwidthとheightの範囲内でランダムに配置
 	game.players[clientID] = &Player{
 		ID:       clientID,
-		Position: &Position{X: game.width / 2, Y: game.height / 2},
+		Position: &Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
 	}
 
 	// 全てのtopicをsubscribeする
