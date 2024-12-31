@@ -33,13 +33,6 @@ type Server struct {
 	wg         sync.WaitGroup
 }
 
-// Client represents a connected MQTT client
-type Client struct {
-	ID      string
-	Conn    net.Conn
-	sendMux sync.Mutex
-}
-
 func NewServer(address string, hook Hooker, broker *Broker) (*Server, error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
