@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -22,12 +23,12 @@ func main() {
 	hook := NewController(broker, NewGameState())
 	server, err := NewServer(":1883", hook, broker)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Sprintf("%+v", err))
 	}
 
 	go func() {
 		if err := server.Serve(); err != nil {
-			log.Fatal(err)
+			log.Fatal(fmt.Sprintf("%+v", err))
 		}
 	}()
 
@@ -35,10 +36,6 @@ func main() {
 	<-done
 
 	if err := server.Shutdown(10 * time.Second); err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Sprintf("%+v", err))
 	}
-
-	// server.Log.Warn("caught signal, stopping...")
-	// _ = server.Close()
-	// server.Log.Info("main.go finished")
 }

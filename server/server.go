@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
+	"github.com/pkg/errors"
 )
 
 type Hooker interface {
@@ -42,7 +43,7 @@ type Client struct {
 func NewServer(address string, hook Hooker, broker *Broker) (*Server, error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to listen")
 	}
 
 	return &Server{
@@ -62,8 +63,7 @@ func (s *Server) Serve() error {
 				return nil
 			}
 
-			slog.Error("Failed to accept connection", "error", err)
-			return err
+			return errors.Wrap(err, "failed to accept connection")
 		}
 
 		client := &Client{
@@ -80,7 +80,7 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 	s.inShutdown.Store(true)
 
 	if err := s.listener.Close(); err != nil {
-		return fmt.Errorf("error closing listener: %w", err)
+		return errors.Wrap(err, "error closing listener")
 	}
 
 	// すべての接続を閉じる
@@ -97,7 +97,7 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 	case <-done:
 		slog.Info("Server shutdown complete")
 	case <-time.After(timeout):
-		return fmt.Errorf("shutdown timed out")
+		return errors.New("shutdown timed out")
 	}
 
 	return nil
@@ -124,13 +124,17 @@ func (s *Server) handleConnection(client *Client) {
 				return
 			}
 
-			slog.Error("Error reading packet", "error", err)
+			slog.Error("Error reading packet",
+				"error", fmt.Sprintf("%+v", err),
+			)
 			return
 		}
 
 		if err := s.handlePacket(client, packet); err != nil {
-			slog.Error("Error handling packet", "error", err)
-			return
+			// packet一つのハンドリングを失敗しただけなら、そのパケットを破棄して続ける
+			slog.Error("Error handling packet",
+				"error", fmt.Sprintf("%+v", err),
+			)
 		}
 	}
 }
@@ -162,7 +166,7 @@ func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error 
 	connack.SessionPresent = false
 
 	if err := connack.Write(client.Conn); err != nil {
-		return fmt.Errorf("failed to write CONNACK: %v", err)
+		return errors.Wrap(err, "failed to write CONNACK")
 	}
 
 	// クライアントの登録
@@ -194,7 +198,7 @@ func (s *Server) handleSubscribe(client *Client, sp *packets.SubscribePacket) er
 	ack.MessageID = sp.MessageID
 	ack.ReturnCodes = make([]byte, len(sp.Topics)) // QoS=0 only
 	if err := ack.Write(client.Conn); err != nil {
-		return fmt.Errorf("failed to write suback packet: %w", err)
+		return errors.Wrap(err, "failed to write suback packet")
 	}
 
 	if err := s.hook.OnSubscribed(client, sp); err != nil {

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
 	"github.com/shibayu36/terminal-shooter/shared"
 
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -46,16 +48,14 @@ func (c *Controller) OnSubscribed(cl *Client, pk *packets.SubscribePacket) error
 		}
 		payload, err := proto.Marshal(playerState)
 		if err != nil {
-			slog.Error("failed to marshal player state", "error", err)
-			return err
+			return errors.Wrap(err, "failed to marshal player state")
 		}
 
 		slog.Info("send player state on subscribe", "player", playerState.String())
 
 		err = c.broker.Send(cl.ID, "player_state", payload)
 		if err != nil {
-			slog.Error("failed to send player state", "error", err)
-			return err
+			return errors.Wrap(err, "failed to send player state")
 		}
 	}
 
@@ -67,10 +67,8 @@ func (c *Controller) OnPublished(cl *Client, pk *packets.PublishPacket) error {
 	case "player_state":
 		return c.onReceivePlayerState(cl, pk)
 	default:
-		slog.Error("invalid topic name", "topic", pk.TopicName)
+		return errors.New(fmt.Sprintf("invalid topic name: %s", pk.TopicName))
 	}
-
-	return nil
 }
 
 func (c *Controller) OnDisconnected(cl *Client, pk *packets.DisconnectPacket) error {
@@ -88,8 +86,7 @@ func (c *Controller) onReceivePlayerState(cl *Client, pk *packets.PublishPacket)
 	playerState := &shared.PlayerState{}
 	err := proto.Unmarshal(pk.Payload, playerState)
 	if err != nil {
-		slog.Error("failed to unmarshal player state", "error", err)
-		return err
+		return errors.Wrap(err, "failed to unmarshal player state")
 	}
 	position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
 	c.game.UpdatePlayerPosition(playerID, position)
