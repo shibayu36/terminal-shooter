@@ -9,21 +9,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// MQTTのパケット送受信のフックを実装する
-// 実質ハンドラーとしての役割を持つ
-
-type Hook struct {
+// Controller クライアントからのパケットをゲームの状態に反映し、さらに他のクライアントに状態同期をする役割を持つ
+type Controller struct {
 	broker *Broker
 	game   *GameState
 }
 
-var _ Hooker = &Hook{}
+var _ Hooker = &Controller{}
 
-func NewHook(broker *Broker, game *GameState) *Hook {
-	return &Hook{broker: broker, game: game}
+func NewController(broker *Broker, game *GameState) *Controller {
+	return &Controller{broker: broker, game: game}
 }
 
-func (h *Hook) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
+func (h *Controller) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
 	h.game.AddPlayer(PlayerID(cl.ID), &PlayerState{Position: &Position{X: 0, Y: 0}})
 
 	// Player状態を出力
@@ -32,11 +30,11 @@ func (h *Hook) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
 	return nil
 }
 
-func (h *Hook) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error {
+func (h *Controller) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error {
 	return nil
 }
 
-func (h *Hook) OnPublish(cl *Client, pk *packets.PublishPacket) error {
+func (h *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 	if pk.TopicName == "player_state" {
 		playerID := PlayerID(cl.ID)
 		playerState := &shared.PlayerState{}
@@ -58,7 +56,7 @@ func (h *Hook) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 	return nil
 }
 
-func (h *Hook) OnDisconnect(cl *Client, pk *packets.DisconnectPacket) error {
+func (h *Controller) OnDisconnect(cl *Client, pk *packets.DisconnectPacket) error {
 	log.Printf("client disconnected: %s", cl.ID)
 	h.game.RemovePlayer(PlayerID(cl.ID))
 
