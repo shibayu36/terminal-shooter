@@ -35,21 +35,10 @@ func (c *Controller) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error 
 }
 
 func (c *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
-	if pk.TopicName == "player_state" {
-		playerID := PlayerID(cl.ID)
-		playerState := &shared.PlayerState{}
-		err := proto.Unmarshal(pk.Payload, playerState)
-		if err != nil {
-			log.Printf("failed to unmarshal player state: %s", err)
-			return err
-		}
-		position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
-		c.game.UpdatePlayerPosition(playerID, position)
-
-		c.broker.Broadcast("player_state", pk.Payload)
-
-		log.Printf("all players: %s", c.game.String())
-	} else {
+	switch pk.TopicName {
+	case "player_state":
+		return c.onReceivePlayerState(cl, pk)
+	default:
 		log.Printf("invalid topic name: %s", pk.TopicName)
 	}
 
@@ -59,6 +48,25 @@ func (c *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 func (c *Controller) OnDisconnect(cl *Client, pk *packets.DisconnectPacket) error {
 	log.Printf("client disconnected: %s", cl.ID)
 	c.game.RemovePlayer(PlayerID(cl.ID))
+
+	return nil
+}
+
+// player_stateパケットを受信した時の処理
+func (c *Controller) onReceivePlayerState(cl *Client, pk *packets.PublishPacket) error {
+	playerID := PlayerID(cl.ID)
+	playerState := &shared.PlayerState{}
+	err := proto.Unmarshal(pk.Payload, playerState)
+	if err != nil {
+		log.Printf("failed to unmarshal player state: %s", err)
+		return err
+	}
+	position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
+	c.game.UpdatePlayerPosition(playerID, position)
+
+	c.broker.Broadcast("player_state", pk.Payload)
+
+	log.Printf("all players: %s", c.game.String())
 
 	return nil
 }
