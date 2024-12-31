@@ -21,20 +21,20 @@ func NewController(broker *Broker, game *GameState) *Controller {
 	return &Controller{broker: broker, game: game}
 }
 
-func (h *Controller) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
-	h.game.AddPlayer(PlayerID(cl.ID), &PlayerState{Position: &Position{X: 0, Y: 0}})
+func (c *Controller) OnConnect(cl *Client, pk *packets.ConnectPacket) error {
+	c.game.AddPlayer(PlayerID(cl.ID), &PlayerState{Position: &Position{X: 0, Y: 0}})
 
 	// Player状態を出力
-	log.Printf("all players: %s", h.game.String())
+	log.Printf("all players: %s", c.game.String())
 
 	return nil
 }
 
-func (h *Controller) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error {
+func (c *Controller) OnSubscribe(cl *Client, pk *packets.SubscribePacket) error {
 	return nil
 }
 
-func (h *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
+func (c *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 	if pk.TopicName == "player_state" {
 		playerID := PlayerID(cl.ID)
 		playerState := &shared.PlayerState{}
@@ -44,11 +44,11 @@ func (h *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 			return err
 		}
 		position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
-		h.game.UpdatePlayerPosition(playerID, position)
+		c.game.UpdatePlayerPosition(playerID, position)
 
-		h.broker.Broadcast("player_state", pk.Payload)
+		c.broker.Broadcast("player_state", pk.Payload)
 
-		log.Printf("all players: %s", h.game.String())
+		log.Printf("all players: %s", c.game.String())
 	} else {
 		log.Printf("invalid topic name: %s", pk.TopicName)
 	}
@@ -56,9 +56,9 @@ func (h *Controller) OnPublish(cl *Client, pk *packets.PublishPacket) error {
 	return nil
 }
 
-func (h *Controller) OnDisconnect(cl *Client, pk *packets.DisconnectPacket) error {
+func (c *Controller) OnDisconnect(cl *Client, pk *packets.DisconnectPacket) error {
 	log.Printf("client disconnected: %s", cl.ID)
-	h.game.RemovePlayer(PlayerID(cl.ID))
+	c.game.RemovePlayer(PlayerID(cl.ID))
 
 	return nil
 }
