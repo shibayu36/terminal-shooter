@@ -44,12 +44,12 @@ func (b *Broker) Broadcast(topic string, payload []byte) {
 	b.clientsMux.RLock()
 	defer b.clientsMux.RUnlock()
 
-	for _, client := range b.clients {
-		publishPacket := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
-		publishPacket.TopicName = topic
-		publishPacket.Payload = payload
-		publishPacket.Qos = 0
+	publishPacket := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
+	publishPacket.TopicName = topic
+	publishPacket.Payload = payload
+	publishPacket.Qos = 0
 
+	for _, client := range b.clients {
 		client.sendMux.Lock()
 		err := publishPacket.Write(client.Conn)
 		client.sendMux.Unlock()
