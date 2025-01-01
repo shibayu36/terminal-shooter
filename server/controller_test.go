@@ -80,10 +80,12 @@ func TestController_OnSubscribed(t *testing.T) {
 	// id1の位置が送信されている
 	assert.EqualValues(t, 5, idToState["id1"].Position.X)
 	assert.EqualValues(t, 10, idToState["id1"].Position.Y)
+	assert.Equal(t, shared.Status_ALIVE, idToState["id1"].Status)
 
 	// id2の位置が送信されている
 	assert.EqualValues(t, 10, idToState["id2"].Position.X)
 	assert.EqualValues(t, 20, idToState["id2"].Position.Y)
+	assert.Equal(t, shared.Status_ALIVE, idToState["id2"].Status)
 }
 
 func TestController_OnPublished_PlayerState(t *testing.T) {
@@ -134,6 +136,7 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 15, publishedState.Position.X)
 		assert.EqualValues(t, 25, publishedState.Position.Y)
+		assert.Equal(t, shared.Status_ALIVE, publishedState.Status)
 	}
 }
 

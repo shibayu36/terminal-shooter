@@ -45,6 +45,7 @@ func (c *Controller) OnSubscribed(cl Client, pk *packets.SubscribePacket) error 
 				X: int32(player.Position.X),
 				Y: int32(player.Position.Y),
 			},
+			Status: shared.Status_ALIVE,
 		}
 		payload, err := proto.Marshal(playerState)
 		if err != nil {
@@ -91,7 +92,12 @@ func (c *Controller) onReceivePlayerState(cl Client, pk *packets.PublishPacket) 
 	position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
 	c.game.UpdatePlayerPosition(playerID, position)
 
-	c.broker.Broadcast("player_state", pk.Payload)
+	playerState.Status = shared.Status_ALIVE
+	payload, err := proto.Marshal(playerState)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal player state")
+	}
+	c.broker.Broadcast("player_state", payload)
 
 	slog.Info("all players", "players", c.game.String())
 

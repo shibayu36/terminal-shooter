@@ -13,4 +13,13 @@ message Position {
 message PlayerState {
   string player_id = 1;
   Position position = 2;
+
+  // statusはserverからのみ送信する
+  Status status = 3;
+}
+
+// プレイヤーのステータス
+enum Status {
+  ALIVE = 0;
+  DISCONNECTED = 1;
 }
