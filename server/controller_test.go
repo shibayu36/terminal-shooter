@@ -136,3 +136,24 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 		assert.EqualValues(t, 25, publishedState.Position.Y)
 	}
 }
+
+func TestController_OnDisconnected(t *testing.T) {
+	// 切断したら、そのプレイヤーを削除する
+
+	broker := NewBroker()
+	state := NewGameState()
+	controller := NewController(broker, state)
+
+	cl1 := &mockClient{id: "id1"}
+	broker.AddClient(cl1)
+	controller.OnConnected(cl1, nil)
+
+	cl2 := &mockClient{id: "id2"}
+	broker.AddClient(cl2)
+	controller.OnConnected(cl2, nil)
+
+	controller.OnDisconnected(cl1, nil)
+
+	assert.NotContains(t, state.GetPlayers(), PlayerID("id1"))
+	assert.Contains(t, state.GetPlayers(), PlayerID("id2"))
+}
