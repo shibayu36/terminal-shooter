@@ -85,3 +85,54 @@ func TestController_OnSubscribed(t *testing.T) {
 	assert.EqualValues(t, 10, idToState["id2"].Position.X)
 	assert.EqualValues(t, 20, idToState["id2"].Position.Y)
 }
+
+func TestController_OnPublished_PlayerState(t *testing.T) {
+	// player_stateパケットを受信したら、そのプレイヤーの位置を更新し、全員にそのプレイヤーの位置を送信する
+
+	broker := NewBroker()
+	state := NewGameState()
+	controller := NewController(broker, state)
+
+	cl1 := &mockClient{id: "id1"}
+	broker.AddClient(cl1)
+	controller.OnConnected(cl1, nil)
+
+	cl2 := &mockClient{id: "id2"}
+	broker.AddClient(cl2)
+	controller.OnConnected(cl2, nil)
+
+	cl3 := &mockClient{id: "id3"}
+	broker.AddClient(cl3)
+	controller.OnConnected(cl3, nil)
+
+	// cl3からのplayer_stateを受信する
+	{
+		payload, err := proto.Marshal(&shared.PlayerState{
+			PlayerId: "id3",
+			Position: &shared.Position{X: 15, Y: 25},
+		})
+		require.NoError(t, err)
+
+		packet := &packets.PublishPacket{
+			TopicName: "player_state",
+			Payload:   payload,
+		}
+
+		controller.OnPublished(cl3, packet)
+	}
+
+	// cl3の位置が更新されている
+	assert.EqualValues(t, 15, state.GetPlayers()[PlayerID("id3")].Position.X)
+	assert.EqualValues(t, 25, state.GetPlayers()[PlayerID("id3")].Position.Y)
+
+	// cl1, cl2, cl3にそれぞれ位置が送信されている
+	for _, cl := range []*mockClient{cl1, cl2, cl3} {
+		require.Len(t, cl.published, 1)
+		assert.Equal(t, cl.published[0].TopicName, "player_state")
+		publishedState := &shared.PlayerState{}
+		err := proto.Unmarshal(cl.published[0].Payload, publishedState)
+		require.NoError(t, err)
+		assert.EqualValues(t, 15, publishedState.Position.X)
+		assert.EqualValues(t, 25, publishedState.Position.Y)
+	}
+}
