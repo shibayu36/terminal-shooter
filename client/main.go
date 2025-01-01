@@ -206,6 +206,11 @@ func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
 			return
 		}
 
+		if playerState.Status == shared.Status_DISCONNECTED {
+			delete(g.players, playerState.PlayerId)
+			return
+		}
+
 		g.players[playerState.PlayerId] = &Player{
 			ID:       playerState.PlayerId,
 			Position: &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)},

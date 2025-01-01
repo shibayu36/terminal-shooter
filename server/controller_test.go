@@ -141,7 +141,7 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 }
 
 func TestController_OnDisconnected(t *testing.T) {
-	// 切断したら、そのプレイヤーを削除する
+	// 切断したら、そのプレイヤーを削除し、そのプレイヤーが切断したことを全員に送信する
 
 	broker := NewBroker()
 	state := NewGameState()
@@ -155,8 +155,22 @@ func TestController_OnDisconnected(t *testing.T) {
 	broker.AddClient(cl2)
 	controller.OnConnected(cl2, nil)
 
+	cl3 := &mockClient{id: "id3"}
+	broker.AddClient(cl3)
+	controller.OnConnected(cl3, nil)
+
 	controller.OnDisconnected(cl1, nil)
 
 	assert.NotContains(t, state.GetPlayers(), PlayerID("id1"))
 	assert.Contains(t, state.GetPlayers(), PlayerID("id2"))
+
+	// cl1, cl2, cl3に切断したことが送信されている
+	for _, cl := range []*mockClient{cl1, cl2, cl3} {
+		require.Len(t, cl.published, 1)
+		assert.Equal(t, cl.published[0].TopicName, "player_state")
+		publishedState := &shared.PlayerState{}
+		err := proto.Unmarshal(cl.published[0].Payload, publishedState)
+		require.NoError(t, err)
+		assert.Equal(t, shared.Status_DISCONNECTED, publishedState.Status)
+	}
 }

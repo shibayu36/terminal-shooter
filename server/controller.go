@@ -76,7 +76,15 @@ func (c *Controller) OnDisconnected(cl Client, pk *packets.DisconnectPacket) err
 	slog.Info("client disconnected", "client_id", cl.ID())
 	c.game.RemovePlayer(PlayerID(cl.ID()))
 
-	// TODO: Disconnectしたら、他のクライアントにそのクライアントが消えたことを通知する
+	playerState := &shared.PlayerState{
+		PlayerId: string(cl.ID()),
+		Status:   shared.Status_DISCONNECTED,
+	}
+	payload, err := proto.Marshal(playerState)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal player state")
+	}
+	c.broker.Broadcast("player_state", payload)
 
 	return nil
 }
