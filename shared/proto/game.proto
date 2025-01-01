@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package terminalshooter;
+option go_package = "github.com/shibayu36/terminal-shooter/shared";
+
+// 位置情報
+message Position {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+// プレイヤーの状態
+message PlayerState {
+  string player_id = 1;
+  Position position = 2;
+
+  // statusはserverからのみ送信する
+  Status status = 3;
+}
+
+// プレイヤーのステータス
+enum Status {
+  ALIVE = 0;
+  DISCONNECTED = 1;
+}
