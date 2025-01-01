@@ -32,12 +32,12 @@ func TestController_OnConnected(t *testing.T) {
 	cl1 := &mockClient{id: "id1"}
 	controller.OnConnected(cl1, nil)
 	assert.Equal(t, state.GetPlayers()[PlayerID("id1")], &PlayerState{Position: &Position{X: 0, Y: 0}}, "cl1が追加された")
-	assert.Len(t, cl1.published, 0, "cl1にはメッセージが送信されていない")
+	assert.Equal(t, broker.clients[cl1.id], cl1, "cl1がbrokerに追加された")
 
 	cl2 := &mockClient{id: "id2"}
 	controller.OnConnected(cl2, nil)
 	assert.Equal(t, state.GetPlayers()[PlayerID("id2")], &PlayerState{Position: &Position{X: 0, Y: 0}}, "cl2が追加された")
-	assert.Len(t, cl2.published, 0, "cl2にはメッセージが送信されていない")
+	assert.Equal(t, broker.clients[cl2.id], cl2, "cl2がbrokerに追加された")
 }
 
 func TestController_OnSubscribed(t *testing.T) {
@@ -48,17 +48,14 @@ func TestController_OnSubscribed(t *testing.T) {
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
-	broker.AddClient(cl1)
 	controller.OnConnected(cl1, nil)
 	state.UpdatePlayerPosition(PlayerID("id1"), &Position{X: 5, Y: 10})
 
 	cl2 := &mockClient{id: "id2"}
-	broker.AddClient(cl2)
 	controller.OnConnected(cl2, nil)
 	state.UpdatePlayerPosition(PlayerID("id2"), &Position{X: 10, Y: 20})
 
 	cl3 := &mockClient{id: "id3"}
-	broker.AddClient(cl3)
 	controller.OnConnected(cl3, nil)
 
 	controller.OnSubscribed(cl3, nil)
@@ -96,15 +93,12 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
-	broker.AddClient(cl1)
 	controller.OnConnected(cl1, nil)
 
 	cl2 := &mockClient{id: "id2"}
-	broker.AddClient(cl2)
 	controller.OnConnected(cl2, nil)
 
 	cl3 := &mockClient{id: "id3"}
-	broker.AddClient(cl3)
 	controller.OnConnected(cl3, nil)
 
 	// cl3からのplayer_stateを受信する
@@ -148,24 +142,23 @@ func TestController_OnDisconnected(t *testing.T) {
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
-	broker.AddClient(cl1)
 	controller.OnConnected(cl1, nil)
 
 	cl2 := &mockClient{id: "id2"}
-	broker.AddClient(cl2)
 	controller.OnConnected(cl2, nil)
 
 	cl3 := &mockClient{id: "id3"}
 	broker.AddClient(cl3)
 	controller.OnConnected(cl3, nil)
 
-	controller.OnDisconnected(cl1, nil)
+	controller.OnDisconnected(cl1)
 
 	assert.NotContains(t, state.GetPlayers(), PlayerID("id1"))
 	assert.Contains(t, state.GetPlayers(), PlayerID("id2"))
+	assert.Contains(t, state.GetPlayers(), PlayerID("id3"))
 
-	// cl1, cl2, cl3に切断したことが送信されている
-	for _, cl := range []*mockClient{cl1, cl2, cl3} {
+	// cl1の切断がcl2, cl3に送信されている
+	for _, cl := range []*mockClient{cl2, cl3} {
 		require.Len(t, cl.published, 1)
 		assert.Equal(t, cl.published[0].TopicName, "player_state")
 		publishedState := &shared.PlayerState{}
@@ -173,4 +166,7 @@ func TestController_OnDisconnected(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, shared.Status_DISCONNECTED, publishedState.Status)
 	}
+
+	// cl1がbrokerから削除されている
+	assert.NotContains(t, broker.clients, cl1.id)
 }

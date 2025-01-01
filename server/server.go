@@ -17,7 +17,7 @@ type Hooker interface {
 	OnConnected(client Client, packet *packets.ConnectPacket) error
 	OnPublished(client Client, packet *packets.PublishPacket) error
 	OnSubscribed(client Client, packet *packets.SubscribePacket) error
-	OnDisconnected(client Client, packet *packets.DisconnectPacket) error
+	OnDisconnected(client Client) error
 }
 
 // Server represents the MQTT server
@@ -25,16 +25,13 @@ type Server struct {
 	listener net.Listener
 	hook     Hooker
 
-	// クライアント管理
-	broker *Broker
-
 	// サーバーの終了のため
 	activeConn map[net.Conn]struct{}
 	inShutdown atomic.Bool
 	wg         sync.WaitGroup
 }
 
-func NewServer(address string, hook Hooker, broker *Broker) (*Server, error) {
+func NewServer(address string, hook Hooker) (*Server, error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to listen")
@@ -43,7 +40,6 @@ func NewServer(address string, hook Hooker, broker *Broker) (*Server, error) {
 	return &Server{
 		listener: listener,
 		hook:     hook,
-		broker:   broker,
 
 		activeConn: make(map[net.Conn]struct{}),
 	}, nil
@@ -105,7 +101,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 
 	defer func() {
-		s.broker.RemoveClient(client)
+		s.hook.OnDisconnected(client)
 		conn.Close()
 		delete(s.activeConn, conn)
 		s.wg.Done()
@@ -152,7 +148,8 @@ func (s *Server) handlePacket(client *client, packet packets.ControlPacket) erro
 		pingresp := packets.NewControlPacket(packets.Pingresp).(*packets.PingrespPacket)
 		return pingresp.Write(client.conn)
 	case *packets.DisconnectPacket:
-		return s.handleDisconnect(client, p)
+		// 何もしない
+		return nil
 	default:
 		// サポートしていないパケットは無視
 		return nil
@@ -172,8 +169,6 @@ func (s *Server) handleConnect(client *client, cp *packets.ConnectPacket) error 
 
 	// クライアントの登録
 	client.id = cp.ClientIdentifier
-
-	s.broker.AddClient(client)
 
 	if err := s.hook.OnConnected(client, cp); err != nil {
 		return err
@@ -203,17 +198,6 @@ func (s *Server) handleSubscribe(client *client, sp *packets.SubscribePacket) er
 	}
 
 	if err := s.hook.OnSubscribed(client, sp); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// handleDisconnect handles DISCONNECT packets
-func (s *Server) handleDisconnect(client *client, dp *packets.DisconnectPacket) error {
-	s.broker.RemoveClient(client)
-
-	if err := s.hook.OnDisconnected(client, dp); err != nil {
 		return err
 	}
 

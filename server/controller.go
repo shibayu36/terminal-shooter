@@ -24,6 +24,7 @@ func NewController(broker *Broker, game *GameState) *Controller {
 }
 
 func (c *Controller) OnConnected(cl Client, pk *packets.ConnectPacket) error {
+	c.broker.AddClient(cl)
 	c.game.AddPlayer(PlayerID(cl.ID()), &PlayerState{Position: &Position{X: 0, Y: 0}})
 
 	// Player状態を出力
@@ -72,8 +73,9 @@ func (c *Controller) OnPublished(cl Client, pk *packets.PublishPacket) error {
 	}
 }
 
-func (c *Controller) OnDisconnected(cl Client, pk *packets.DisconnectPacket) error {
+func (c *Controller) OnDisconnected(cl Client) error {
 	slog.Info("client disconnected", "client_id", cl.ID())
+	c.broker.RemoveClient(cl)
 	c.game.RemovePlayer(PlayerID(cl.ID()))
 
 	playerState := &shared.PlayerState{

@@ -21,7 +21,7 @@ func main() {
 
 	broker := NewBroker()
 	hook := NewController(broker, NewGameState())
-	server, err := NewServer(":1883", hook, broker)
+	server, err := NewServer(":1883", hook)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("%+v", err))
 	}
