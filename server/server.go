@@ -14,10 +14,10 @@ import (
 )
 
 type Hooker interface {
-	OnConnected(client *Client, packet *packets.ConnectPacket) error
-	OnPublished(client *Client, packet *packets.PublishPacket) error
-	OnSubscribed(client *Client, packet *packets.SubscribePacket) error
-	OnDisconnected(client *Client, packet *packets.DisconnectPacket) error
+	OnConnected(client Client, packet *packets.ConnectPacket) error
+	OnPublished(client Client, packet *packets.PublishPacket) error
+	OnSubscribed(client Client, packet *packets.SubscribePacket) error
+	OnDisconnected(client Client, packet *packets.DisconnectPacket) error
 }
 
 // Server represents the MQTT server
@@ -100,8 +100,8 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 func (s *Server) handleConnection(conn net.Conn) {
 	s.activeConn[conn] = struct{}{}
 
-	client := &Client{
-		Conn: conn,
+	client := &client{
+		conn: conn,
 	}
 
 	defer func() {
@@ -140,7 +140,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 }
 
-func (s *Server) handlePacket(client *Client, packet packets.ControlPacket) error {
+func (s *Server) handlePacket(client *client, packet packets.ControlPacket) error {
 	switch p := packet.(type) {
 	case *packets.ConnectPacket:
 		return s.handleConnect(client, p)
@@ -150,7 +150,7 @@ func (s *Server) handlePacket(client *Client, packet packets.ControlPacket) erro
 		return s.handleSubscribe(client, p)
 	case *packets.PingreqPacket:
 		pingresp := packets.NewControlPacket(packets.Pingresp).(*packets.PingrespPacket)
-		return pingresp.Write(client.Conn)
+		return pingresp.Write(client.conn)
 	case *packets.DisconnectPacket:
 		return s.handleDisconnect(client, p)
 	default:
@@ -160,18 +160,18 @@ func (s *Server) handlePacket(client *Client, packet packets.ControlPacket) erro
 }
 
 // handleConnect handles CONNECT packets
-func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error {
+func (s *Server) handleConnect(client *client, cp *packets.ConnectPacket) error {
 	// CONNACK パケットの作成と送信
 	connack := packets.NewControlPacket(packets.Connack).(*packets.ConnackPacket)
 	connack.ReturnCode = packets.Accepted
 	connack.SessionPresent = false
 
-	if err := connack.Write(client.Conn); err != nil {
+	if err := connack.Write(client.conn); err != nil {
 		return errors.Wrap(err, "failed to write CONNACK")
 	}
 
 	// クライアントの登録
-	client.ID = cp.ClientIdentifier
+	client.id = cp.ClientIdentifier
 
 	s.broker.AddClient(client)
 
@@ -183,7 +183,7 @@ func (s *Server) handleConnect(client *Client, cp *packets.ConnectPacket) error 
 }
 
 // handlePublish handles PUBLISH packets
-func (s *Server) handlePublish(client *Client, pp *packets.PublishPacket) error {
+func (s *Server) handlePublish(client *client, pp *packets.PublishPacket) error {
 	slog.Info("Received publish packet", "topic", pp.TopicName)
 
 	if err := s.hook.OnPublished(client, pp); err != nil {
@@ -194,11 +194,11 @@ func (s *Server) handlePublish(client *Client, pp *packets.PublishPacket) error 
 }
 
 // handleSubscribe handles SUBSCRIBE packets
-func (s *Server) handleSubscribe(client *Client, sp *packets.SubscribePacket) error {
+func (s *Server) handleSubscribe(client *client, sp *packets.SubscribePacket) error {
 	ack := packets.NewControlPacket(packets.Suback).(*packets.SubackPacket)
 	ack.MessageID = sp.MessageID
 	ack.ReturnCodes = make([]byte, len(sp.Topics)) // QoS=0 only
-	if err := ack.Write(client.Conn); err != nil {
+	if err := ack.Write(client.conn); err != nil {
 		return errors.Wrap(err, "failed to write suback packet")
 	}
 
@@ -210,7 +210,7 @@ func (s *Server) handleSubscribe(client *Client, sp *packets.SubscribePacket) er
 }
 
 // handleDisconnect handles DISCONNECT packets
-func (s *Server) handleDisconnect(client *Client, dp *packets.DisconnectPacket) error {
+func (s *Server) handleDisconnect(client *client, dp *packets.DisconnectPacket) error {
 	s.broker.RemoveClient(client)
 
 	if err := s.hook.OnDisconnected(client, dp); err != nil {

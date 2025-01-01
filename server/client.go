@@ -8,16 +8,27 @@ import (
 )
 
 // Client represents a connected MQTT client
-type Client struct {
-	ID      string
-	Conn    net.Conn
+type Client interface {
+	ID() string
+	Publish(publishPacket *packets.PublishPacket) error
+}
+
+type client struct {
+	id      string
+	conn    net.Conn
 	sendMux sync.Mutex
 }
 
+var _ Client = &client{}
+
+func (c *client) ID() string {
+	return c.id
+}
+
 // Publish クライアントに対してPublishパケットを送信する
-func (c *Client) Publish(publishPacket *packets.PublishPacket) error {
+func (c *client) Publish(publishPacket *packets.PublishPacket) error {
 	c.sendMux.Lock()
 	defer c.sendMux.Unlock()
 
-	return publishPacket.Write(c.Conn)
+	return publishPacket.Write(c.conn)
 }
