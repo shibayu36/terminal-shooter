@@ -28,6 +28,9 @@ linters-settings:
       - name: exported
         severity: warning
         disabled: false
+  gosec:
+    excludes:
+      - G115 # pbへの変換でint -> int32への変換が多いため
 
 issues:
   exclude-rules:
