@@ -101,7 +101,10 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 
 	defer func() {
-		s.hook.OnDisconnected(client)
+		err := s.hook.OnDisconnected(client)
+		if err != nil {
+			slog.Error("Error on disconnected", "error", fmt.Sprintf("%+v", err))
+		}
 		conn.Close()
 		delete(s.activeConn, conn)
 		s.wg.Done()
