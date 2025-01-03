@@ -79,7 +79,7 @@ func (c *Controller) OnDisconnected(cl Client) error {
 	c.game.RemovePlayer(PlayerID(cl.ID()))
 
 	playerState := &shared.PlayerState{
-		PlayerId: string(cl.ID()),
+		PlayerId: cl.ID(),
 		Status:   shared.Status_DISCONNECTED,
 	}
 	payload, err := proto.Marshal(playerState)
