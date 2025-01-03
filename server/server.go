@@ -140,6 +140,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 }
 
 func (s *Server) handlePacket(client *client, packet packets.ControlPacket) error {
+	//nolint:varnamelen
 	switch p := packet.(type) {
 	case *packets.ConnectPacket:
 		return s.handleConnect(client, p)
@@ -164,7 +165,7 @@ func (s *Server) handlePacket(client *client, packet packets.ControlPacket) erro
 }
 
 // handleConnect handles CONNECT packets
-func (s *Server) handleConnect(client *client, cp *packets.ConnectPacket) error {
+func (s *Server) handleConnect(client *client, connectPacket *packets.ConnectPacket) error {
 	// CONNACK パケットの作成と送信
 	//nolint:forcetypeassert
 	connack := packets.NewControlPacket(packets.Connack).(*packets.ConnackPacket)
@@ -176,9 +177,9 @@ func (s *Server) handleConnect(client *client, cp *packets.ConnectPacket) error 
 	}
 
 	// クライアントの登録
-	client.id = cp.ClientIdentifier
+	client.id = connectPacket.ClientIdentifier
 
-	if err := s.hook.OnConnected(client, cp); err != nil {
+	if err := s.hook.OnConnected(client, connectPacket); err != nil {
 		return errors.Wrap(err, "hook OnConnected failed")
 	}
 
@@ -186,10 +187,10 @@ func (s *Server) handleConnect(client *client, cp *packets.ConnectPacket) error 
 }
 
 // handlePublish handles PUBLISH packets
-func (s *Server) handlePublish(client *client, pp *packets.PublishPacket) error {
-	slog.Info("Received publish packet", "topic", pp.TopicName)
+func (s *Server) handlePublish(client *client, publishPacket *packets.PublishPacket) error {
+	slog.Info("Received publish packet", "topic", publishPacket.TopicName)
 
-	if err := s.hook.OnPublished(client, pp); err != nil {
+	if err := s.hook.OnPublished(client, publishPacket); err != nil {
 		return errors.Wrap(err, "hook OnPublished failed")
 	}
 
@@ -197,16 +198,16 @@ func (s *Server) handlePublish(client *client, pp *packets.PublishPacket) error 
 }
 
 // handleSubscribe handles SUBSCRIBE packets
-func (s *Server) handleSubscribe(client *client, sp *packets.SubscribePacket) error {
+func (s *Server) handleSubscribe(client *client, subscribePacket *packets.SubscribePacket) error {
 	//nolint:forcetypeassert
 	ack := packets.NewControlPacket(packets.Suback).(*packets.SubackPacket)
-	ack.MessageID = sp.MessageID
-	ack.ReturnCodes = make([]byte, len(sp.Topics)) // QoS=0 only
+	ack.MessageID = subscribePacket.MessageID
+	ack.ReturnCodes = make([]byte, len(subscribePacket.Topics)) // QoS=0 only
 	if err := ack.Write(client.conn); err != nil {
 		return errors.Wrap(err, "failed to write suback packet")
 	}
 
-	if err := s.hook.OnSubscribed(client, sp); err != nil {
+	if err := s.hook.OnSubscribed(client, subscribePacket); err != nil {
 		return errors.Wrap(err, "hook OnSubscribed failed")
 	}
 

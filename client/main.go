@@ -136,7 +136,7 @@ func (g *Game) publishMyState() {
 }
 
 func (g *Game) handleEvent(event tcell.Event) bool {
-	//nolint:gocritic // ignore singleCaseSwitch
+	//nolint:gocritic,varnamelen // ignore singleCaseSwitch
 	switch ev := event.(type) {
 	case *tcell.EventKey:
 		myPlayer := g.getMyPlayer()
