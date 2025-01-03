@@ -102,7 +102,7 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 		X: int(playerState.GetPosition().GetX()),
 		Y: int(playerState.GetPosition().GetY()),
 	}
-	c.game.UpdatePlayerPosition(playerID, position)
+	c.game.MovePlayer(playerID, position, Direction(playerState.GetDirection()))
 
 	playerState.Status = shared.Status_ALIVE
 	payload, err := proto.Marshal(playerState)

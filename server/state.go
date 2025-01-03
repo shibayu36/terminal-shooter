@@ -39,10 +39,11 @@ func (gs *GameState) RemovePlayer(playerID PlayerID) {
 }
 
 // プレイヤーの位置を更新する
-func (gs *GameState) UpdatePlayerPosition(playerID PlayerID, position *Position) {
+func (gs *GameState) MovePlayer(playerID PlayerID, position *Position, direction Direction) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	gs.Players[playerID].Position = position
+	gs.Players[playerID].Direction = direction
 }
 
 // プレイヤー一覧を取得する
@@ -67,7 +68,8 @@ func (gs *GameState) String() string {
 
 // プレイヤーの状態を管理する
 type PlayerState struct {
-	Position *Position
+	Position  *Position
+	Direction Direction
 }
 
 // 位置を管理する
@@ -75,3 +77,13 @@ type Position struct {
 	X int
 	Y int
 }
+
+// 向き
+type Direction string
+
+const (
+	DirectionUp    Direction = "up"
+	DirectionDown  Direction = "down"
+	DirectionLeft  Direction = "left"
+	DirectionRight Direction = "right"
+)

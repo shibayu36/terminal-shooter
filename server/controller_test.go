@@ -52,12 +52,12 @@ func TestController_OnSubscribed(t *testing.T) {
 	cl1 := &mockClient{id: "id1"}
 	err := controller.OnConnected(cl1, nil)
 	require.NoError(t, err)
-	state.UpdatePlayerPosition(PlayerID("id1"), &Position{X: 5, Y: 10})
+	state.MovePlayer(PlayerID("id1"), &Position{X: 5, Y: 10}, DirectionRight)
 
 	cl2 := &mockClient{id: "id2"}
 	err = controller.OnConnected(cl2, nil)
 	require.NoError(t, err)
-	state.UpdatePlayerPosition(PlayerID("id2"), &Position{X: 10, Y: 20})
+	state.MovePlayer(PlayerID("id2"), &Position{X: 10, Y: 20}, DirectionLeft)
 
 	cl3 := &mockClient{id: "id3"}
 	err = controller.OnConnected(cl3, nil)
