@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gdamore/tcell/v2"
 	"github.com/google/uuid"
@@ -36,11 +37,11 @@ type Game struct {
 func NewGame() (*Game, error) {
 	screen, err := tcell.NewScreen()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create new screen")
 	}
 
 	if err := screen.Init(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to initialize screen")
 	}
 
 	// MQTTクライアントの設定
@@ -51,7 +52,7 @@ func NewGame() (*Game, error) {
 
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		return nil, token.Error()
+		return nil, errors.Wrap(token.Error(), "failed to connect MQTT broker")
 	}
 
 	game := &Game{
@@ -73,7 +74,7 @@ func NewGame() (*Game, error) {
 	// 全てのtopicをsubscribeする
 	token := game.mqtt.Subscribe("#", 0, game.handleMessage)
 	if token.Wait() && token.Error() != nil {
-		return nil, token.Error()
+		return nil, errors.Wrap(token.Error(), "failed to subscribe to topics")
 	}
 
 	// 自分の初期位置を送信

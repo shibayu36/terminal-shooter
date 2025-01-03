@@ -150,7 +150,10 @@ func (s *Server) handlePacket(client *client, packet packets.ControlPacket) erro
 	case *packets.PingreqPacket:
 		//nolint:forcetypeassert
 		pingresp := packets.NewControlPacket(packets.Pingresp).(*packets.PingrespPacket)
-		return pingresp.Write(client.conn)
+		if err := pingresp.Write(client.conn); err != nil {
+			return errors.Wrap(err, "failed to write pingresp")
+		}
+		return nil
 	case *packets.DisconnectPacket:
 		// 何もしない
 		return nil
@@ -176,7 +179,7 @@ func (s *Server) handleConnect(client *client, cp *packets.ConnectPacket) error 
 	client.id = cp.ClientIdentifier
 
 	if err := s.hook.OnConnected(client, cp); err != nil {
-		return err
+		return errors.Wrap(err, "hook OnConnected failed")
 	}
 
 	return nil
@@ -187,7 +190,7 @@ func (s *Server) handlePublish(client *client, pp *packets.PublishPacket) error 
 	slog.Info("Received publish packet", "topic", pp.TopicName)
 
 	if err := s.hook.OnPublished(client, pp); err != nil {
-		return err
+		return errors.Wrap(err, "hook OnPublished failed")
 	}
 
 	return nil
@@ -204,7 +207,7 @@ func (s *Server) handleSubscribe(client *client, sp *packets.SubscribePacket) er
 	}
 
 	if err := s.hook.OnSubscribed(client, sp); err != nil {
-		return err
+		return errors.Wrap(err, "hook OnSubscribed failed")
 	}
 
 	return nil

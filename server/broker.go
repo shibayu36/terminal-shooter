@@ -64,5 +64,6 @@ func (b *Broker) Send(clientID string, topic string, payload []byte) error {
 	publishPacket.Payload = payload
 	publishPacket.Qos = 0
 
+	//nolint:wrapcheck
 	return client.Publish(publishPacket)
 }

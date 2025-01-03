@@ -4,6 +4,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
@@ -30,5 +31,10 @@ func (c *client) Publish(publishPacket *packets.PublishPacket) error {
 	c.sendMux.Lock()
 	defer c.sendMux.Unlock()
 
-	return publishPacket.Write(c.conn)
+	err := publishPacket.Write(c.conn)
+	if err != nil {
+		return errors.Wrap(err, "failed to write publish packet")
+	}
+
+	return nil
 }
