@@ -99,7 +99,10 @@ func (c *Controller) onReceivePlayerState(cl Client, pk *packets.PublishPacket) 
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal player state")
 	}
-	position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
+	position := &Position{
+		X: int(playerState.GetPosition().GetX()),
+		Y: int(playerState.GetPosition().GetY()),
+	}
 	c.game.UpdatePlayerPosition(playerID, position)
 
 	playerState.Status = shared.Status_ALIVE

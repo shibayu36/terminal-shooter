@@ -77,18 +77,18 @@ func TestController_OnSubscribed(t *testing.T) {
 		publishedState := &shared.PlayerState{}
 		err := proto.Unmarshal(published.Payload, publishedState)
 		require.NoError(t, err)
-		idToState[publishedState.PlayerId] = publishedState
+		idToState[publishedState.GetPlayerId()] = publishedState
 	}
 
 	// id1の位置が送信されている
-	assert.EqualValues(t, 5, idToState["id1"].Position.X)
-	assert.EqualValues(t, 10, idToState["id1"].Position.Y)
-	assert.Equal(t, shared.Status_ALIVE, idToState["id1"].Status)
+	assert.EqualValues(t, 5, idToState["id1"].GetPosition().GetX())
+	assert.EqualValues(t, 10, idToState["id1"].GetPosition().GetY())
+	assert.Equal(t, shared.Status_ALIVE, idToState["id1"].GetStatus())
 
 	// id2の位置が送信されている
-	assert.EqualValues(t, 10, idToState["id2"].Position.X)
-	assert.EqualValues(t, 20, idToState["id2"].Position.Y)
-	assert.Equal(t, shared.Status_ALIVE, idToState["id2"].Status)
+	assert.EqualValues(t, 10, idToState["id2"].GetPosition().GetX())
+	assert.EqualValues(t, 20, idToState["id2"].GetPosition().GetY())
+	assert.Equal(t, shared.Status_ALIVE, idToState["id2"].GetStatus())
 }
 
 func TestController_OnPublished_PlayerState(t *testing.T) {
@@ -138,9 +138,9 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 		publishedState := &shared.PlayerState{}
 		err := proto.Unmarshal(cl.published[0].Payload, publishedState)
 		require.NoError(t, err)
-		assert.EqualValues(t, 15, publishedState.Position.X)
-		assert.EqualValues(t, 25, publishedState.Position.Y)
-		assert.Equal(t, shared.Status_ALIVE, publishedState.Status)
+		assert.EqualValues(t, 15, publishedState.GetPosition().GetX())
+		assert.EqualValues(t, 25, publishedState.GetPosition().GetY())
+		assert.Equal(t, shared.Status_ALIVE, publishedState.GetStatus())
 	}
 }
 
@@ -178,7 +178,7 @@ func TestController_OnDisconnected(t *testing.T) {
 		publishedState := &shared.PlayerState{}
 		err := proto.Unmarshal(cl.published[0].Payload, publishedState)
 		require.NoError(t, err)
-		assert.Equal(t, shared.Status_DISCONNECTED, publishedState.Status)
+		assert.Equal(t, shared.Status_DISCONNECTED, publishedState.GetStatus())
 	}
 
 	// cl1がbrokerから削除されている
