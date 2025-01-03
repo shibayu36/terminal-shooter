@@ -30,6 +30,7 @@ func (gs *GameState) AddPlayer(playerID PlayerID) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	gs.Players[playerID] = &PlayerState{
+		PlayerID:  playerID,
 		Position:  &Position{X: 0, Y: 0},
 		Direction: DirectionUp,
 	}
@@ -72,6 +73,7 @@ func (gs *GameState) String() string {
 
 // プレイヤーの状態を管理する
 type PlayerState struct {
+	PlayerID  PlayerID
 	Position  *Position
 	Direction Direction
 }

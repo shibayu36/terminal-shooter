@@ -32,13 +32,21 @@ func TestController_OnConnected(t *testing.T) {
 	cl1 := &mockClient{id: "id1"}
 	err := controller.OnConnected(cl1, nil)
 	require.NoError(t, err)
-	assert.Equal(t, &PlayerState{Position: &Position{X: 0, Y: 0}}, state.GetPlayers()[PlayerID("id1")], "cl1が追加された")
+	assert.Equal(t, &PlayerState{
+		PlayerID:  PlayerID("id1"),
+		Position:  &Position{X: 0, Y: 0},
+		Direction: DirectionUp,
+	}, state.GetPlayers()[PlayerID("id1")], "cl1が追加された")
 	assert.Equal(t, broker.clients[cl1.id], cl1, "cl1がbrokerに追加された")
 
 	cl2 := &mockClient{id: "id2"}
 	err = controller.OnConnected(cl2, nil)
 	require.NoError(t, err)
-	assert.Equal(t, &PlayerState{Position: &Position{X: 0, Y: 0}}, state.GetPlayers()[PlayerID("id2")], "cl2が追加された")
+	assert.Equal(t, &PlayerState{
+		PlayerID:  PlayerID("id2"),
+		Position:  &Position{X: 0, Y: 0},
+		Direction: DirectionUp,
+	}, state.GetPlayers()[PlayerID("id2")], "cl2が追加された")
 	assert.Equal(t, broker.clients[cl2.id], cl2, "cl2がbrokerに追加された")
 }
 
