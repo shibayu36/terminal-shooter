@@ -8,6 +8,7 @@ linters:
     - mnd # 多少マジックナンバーがあってもいい
     - err113 # 多少動的なerrがあってもいい
     - paralleltest
+    - perfsprint # パフォーマンスチューニングはここまで求められていない
 
 linters-settings:
   cyclop:
