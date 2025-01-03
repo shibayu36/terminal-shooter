@@ -176,8 +176,8 @@ func (g *Game) draw() {
 
 	// マップの境界を描画
 	style := tcell.StyleDefault.Foreground(tcell.ColorWhite)
-	for y := 0; y < g.height; y++ {
-		for x := 0; x < g.width; x++ {
+	for y := range g.height {
+		for x := range g.width {
 			g.screen.SetContent(x, y, '.', nil, style)
 		}
 	}
