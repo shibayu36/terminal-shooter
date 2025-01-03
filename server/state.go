@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+
+	"github.com/cockroachdb/errors"
+	"github.com/shibayu36/terminal-shooter/shared"
 )
 
 type (
@@ -78,6 +81,19 @@ type PlayerState struct {
 	Direction Direction
 }
 
+// プレイヤーの状態をshared.PlayerStateに変換する
+func (ps *PlayerState) ToSharedPlayerState(status shared.Status) *shared.PlayerState {
+	return &shared.PlayerState{
+		PlayerId: string(ps.PlayerID),
+		Position: &shared.Position{
+			X: int32(ps.Position.X),
+			Y: int32(ps.Position.Y),
+		},
+		Direction: ps.Direction.ToSharedDirection(),
+		Status:    status,
+	}
+}
+
 // 位置を管理する
 type Position struct {
 	X int
@@ -93,3 +109,35 @@ const (
 	DirectionLeft  Direction = "left"
 	DirectionRight Direction = "right"
 )
+
+// Directionをshared.Directionに変換する
+func (d Direction) ToSharedDirection() shared.Direction {
+	switch d {
+	case DirectionUp:
+		return shared.Direction_UP
+	case DirectionDown:
+		return shared.Direction_DOWN
+	case DirectionLeft:
+		return shared.Direction_LEFT
+	case DirectionRight:
+		return shared.Direction_RIGHT
+	default:
+		panic(fmt.Sprintf("invalid direction: %s", d))
+	}
+}
+
+// shared.DirectionをDirectionに変換する
+func FromSharedDirection(d shared.Direction) (Direction, error) {
+	switch d {
+	case shared.Direction_UP:
+		return DirectionUp, nil
+	case shared.Direction_DOWN:
+		return DirectionDown, nil
+	case shared.Direction_LEFT:
+		return DirectionLeft, nil
+	case shared.Direction_RIGHT:
+		return DirectionRight, nil
+	default:
+		return "", errors.Newf("invalid direction: %d", d)
+	}
+}
