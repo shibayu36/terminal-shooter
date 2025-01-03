@@ -23,6 +23,9 @@ linters-settings:
   gosec:
     excludes:
       - G115 # pbへの変換でint -> int32への変換が多いため
+  exhaustruct:
+    exclude:
+      - '.+/shared\.PlayerState$'
 
 issues:
   exclude-rules:
