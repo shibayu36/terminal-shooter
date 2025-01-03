@@ -24,7 +24,7 @@ func NewController(broker *Broker, game *GameState) *Controller {
 
 func (c *Controller) OnConnected(client Client, _ *packets.ConnectPacket) error {
 	c.broker.AddClient(client)
-	c.game.AddPlayer(PlayerID(client.ID()), &PlayerState{Position: &Position{X: 0, Y: 0}})
+	c.game.AddPlayer(PlayerID(client.ID()))
 
 	// Player状態を出力
 	slog.Info("all players", "players", c.game.String())

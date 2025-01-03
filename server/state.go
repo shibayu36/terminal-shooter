@@ -25,10 +25,14 @@ func NewGameState() *GameState {
 }
 
 // プレイヤーを追加する
-func (gs *GameState) AddPlayer(playerID PlayerID, state *PlayerState) {
+// 全てデフォルトで初期化する
+func (gs *GameState) AddPlayer(playerID PlayerID) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
-	gs.Players[playerID] = state
+	gs.Players[playerID] = &PlayerState{
+		Position:  &Position{X: 0, Y: 0},
+		Direction: DirectionUp,
+	}
 }
 
 // プレイヤーを削除する
