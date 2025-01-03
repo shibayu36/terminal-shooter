@@ -19,7 +19,7 @@ type client struct {
 	sendMux sync.Mutex
 }
 
-var _ Client = &client{}
+var _ Client = (*client)(nil)
 
 func (c *client) ID() string {
 	return c.id

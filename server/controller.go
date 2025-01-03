@@ -17,7 +17,7 @@ type Controller struct {
 	game   *GameState
 }
 
-var _ Hooker = &Controller{}
+var _ Hooker = (*Controller)(nil)
 
 func NewController(broker *Broker, game *GameState) *Controller {
 	return &Controller{broker: broker, game: game}
