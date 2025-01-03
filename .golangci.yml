@@ -6,6 +6,7 @@ linters:
     - depguard # 規模的に依存関係の流れを厳格に管理する必要性はないため
     - godot # dot強制しなくていい
     - mnd # 多少マジックナンバーがあってもいい
+    - err113 # 多少動的なerrがあってもいい
 
 linters-settings:
   cyclop:
