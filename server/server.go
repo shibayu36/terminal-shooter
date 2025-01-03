@@ -119,7 +119,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 				return
 			}
 
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				slog.Info("Client disconnected", "address", conn.RemoteAddr())
 				return
 			}
