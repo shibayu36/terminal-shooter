@@ -1,0 +1,45 @@
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - revive
+    - gosec
+    - prealloc
+    - gocritic
+    - gocyclo
+    - godot
+    - misspell
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  godot:
+    scope: declarations
+    capital: true
+  revive:
+    rules:
+      - name: var-naming
+        severity: warning
+        disabled: false
+      - name: exported
+        severity: warning
+        disabled: false
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - gosec
+    # Exclude protobuf generated files from linting
+    - path: shared/proto/*.pb.go
+      linters:
+        - all
+
+run:
+  timeout: 5m
