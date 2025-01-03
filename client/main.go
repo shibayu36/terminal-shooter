@@ -65,7 +65,8 @@ func NewGame() (*Game, error) {
 
 	// プレイヤーをwidthとheightの範囲内でランダムに配置
 	game.players[clientID] = &Player{
-		ID:       clientID,
+		ID: clientID,
+		//nolint:gosec
 		Position: &Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
 	}
 
