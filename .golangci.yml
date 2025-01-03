@@ -1,24 +1,15 @@
 linters:
-  enable:
-    - gofmt
-    - govet
-    - errcheck
-    - staticcheck
-    - gosimple
-    - ineffassign
-    - revive
-    - gosec
-    - prealloc
-    - gocritic
-    - gocyclo
-    - misspell
+  enable-all: true
+  disable:
+    - wsl # 余計な改行をなるべく含まないようにすることで得られる見通しの良さを重視するため
+    - nlreturn # 上記と同様
+    - depguard # 規模的に依存関係の流れを厳格に管理する必要性はないため
+    - godot # dot強制しなくていい
+    - mnd # 多少マジックナンバーがあってもいい
 
 linters-settings:
-  gocyclo:
-    min-complexity: 15
-  godot:
-    scope: declarations
-    capital: true
+  cyclop:
+    max-complexity: 16
   revive:
     rules:
       - name: var-naming
