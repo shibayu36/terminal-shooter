@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 	"github.com/shibayu36/terminal-shooter/shared"
-
-	"github.com/cockroachdb/errors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -17,15 +16,15 @@ type Controller struct {
 	game   *GameState
 }
 
-var _ Hooker = &Controller{}
+var _ Hooker = (*Controller)(nil)
 
 func NewController(broker *Broker, game *GameState) *Controller {
 	return &Controller{broker: broker, game: game}
 }
 
-func (c *Controller) OnConnected(cl Client, pk *packets.ConnectPacket) error {
-	c.broker.AddClient(cl)
-	c.game.AddPlayer(PlayerID(cl.ID()), &PlayerState{Position: &Position{X: 0, Y: 0}})
+func (c *Controller) OnConnected(client Client, _ *packets.ConnectPacket) error {
+	c.broker.AddClient(client)
+	c.game.AddPlayer(PlayerID(client.ID()), &PlayerState{Position: &Position{X: 0, Y: 0}})
 
 	// Player状態を出力
 	slog.Info("all players", "players", c.game.String())
@@ -33,10 +32,10 @@ func (c *Controller) OnConnected(cl Client, pk *packets.ConnectPacket) error {
 	return nil
 }
 
-func (c *Controller) OnSubscribed(cl Client, pk *packets.SubscribePacket) error {
+func (c *Controller) OnSubscribed(client Client, _ *packets.SubscribePacket) error {
 	// Subscribeが来たら、現在の他プレイヤーの位置をそのクライアントに送信する
 	for playerID, player := range c.game.GetPlayers() {
-		if playerID == PlayerID(cl.ID()) {
+		if playerID == PlayerID(client.ID()) {
 			continue
 		}
 
@@ -55,7 +54,7 @@ func (c *Controller) OnSubscribed(cl Client, pk *packets.SubscribePacket) error 
 
 		slog.Info("send player state on subscribe", "player", playerState.String())
 
-		err = c.broker.Send(cl.ID(), "player_state", payload)
+		err = c.broker.Send(client.ID(), "player_state", payload)
 		if err != nil {
 			return errors.Wrap(err, "failed to send player state")
 		}
@@ -64,22 +63,22 @@ func (c *Controller) OnSubscribed(cl Client, pk *packets.SubscribePacket) error 
 	return nil
 }
 
-func (c *Controller) OnPublished(cl Client, pk *packets.PublishPacket) error {
-	switch pk.TopicName {
+func (c *Controller) OnPublished(client Client, publishPacket *packets.PublishPacket) error {
+	switch publishPacket.TopicName {
 	case "player_state":
-		return c.onReceivePlayerState(cl, pk)
+		return c.onReceivePlayerState(client, publishPacket)
 	default:
-		return errors.New(fmt.Sprintf("invalid topic name: %s", pk.TopicName))
+		return errors.New(fmt.Sprintf("invalid topic name: %s", publishPacket.TopicName))
 	}
 }
 
-func (c *Controller) OnDisconnected(cl Client) error {
-	slog.Info("client disconnected", "client_id", cl.ID())
-	c.broker.RemoveClient(cl)
-	c.game.RemovePlayer(PlayerID(cl.ID()))
+func (c *Controller) OnDisconnected(client Client) error {
+	slog.Info("client disconnected", "client_id", client.ID())
+	c.broker.RemoveClient(client)
+	c.game.RemovePlayer(PlayerID(client.ID()))
 
 	playerState := &shared.PlayerState{
-		PlayerId: string(cl.ID()),
+		PlayerId: client.ID(),
 		Status:   shared.Status_DISCONNECTED,
 	}
 	payload, err := proto.Marshal(playerState)
@@ -92,14 +91,17 @@ func (c *Controller) OnDisconnected(cl Client) error {
 }
 
 // player_stateパケットを受信した時の処理
-func (c *Controller) onReceivePlayerState(cl Client, pk *packets.PublishPacket) error {
-	playerID := PlayerID(cl.ID())
+func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.PublishPacket) error {
+	playerID := PlayerID(client.ID())
 	playerState := &shared.PlayerState{}
-	err := proto.Unmarshal(pk.Payload, playerState)
+	err := proto.Unmarshal(publishPacket.Payload, playerState)
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal player state")
 	}
-	position := &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)}
+	position := &Position{
+		X: int(playerState.GetPosition().GetX()),
+		Y: int(playerState.GetPosition().GetY()),
+	}
 	c.game.UpdatePlayerPosition(playerID, position)
 
 	playerState.Status = shared.Status_ALIVE

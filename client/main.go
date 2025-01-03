@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gdamore/tcell/v2"
 	"github.com/google/uuid"
@@ -36,11 +37,11 @@ type Game struct {
 func NewGame() (*Game, error) {
 	screen, err := tcell.NewScreen()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create new screen")
 	}
 
 	if err := screen.Init(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to initialize screen")
 	}
 
 	// MQTTクライアントの設定
@@ -51,7 +52,7 @@ func NewGame() (*Game, error) {
 
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		return nil, token.Error()
+		return nil, errors.Wrap(token.Error(), "failed to connect MQTT broker")
 	}
 
 	game := &Game{
@@ -73,7 +74,7 @@ func NewGame() (*Game, error) {
 	// 全てのtopicをsubscribeする
 	token := game.mqtt.Subscribe("#", 0, game.handleMessage)
 	if token.Wait() && token.Error() != nil {
-		return nil, token.Error()
+		return nil, errors.Wrap(token.Error(), "failed to subscribe to topics")
 	}
 
 	// 自分の初期位置を送信
@@ -135,12 +136,13 @@ func (g *Game) publishMyState() {
 }
 
 func (g *Game) handleEvent(event tcell.Event) bool {
-	//nolint:gocritic // ignore singleCaseSwitch
+	//nolint:gocritic,varnamelen // ignore singleCaseSwitch
 	switch ev := event.(type) {
 	case *tcell.EventKey:
 		myPlayer := g.getMyPlayer()
 		oldX, oldY := myPlayer.Position.X, myPlayer.Position.Y
 
+		//nolint:exhaustive
 		switch ev.Key() {
 		case tcell.KeyEscape, tcell.KeyCtrlC:
 			return true
@@ -175,8 +177,8 @@ func (g *Game) draw() {
 
 	// マップの境界を描画
 	style := tcell.StyleDefault.Foreground(tcell.ColorWhite)
-	for y := 0; y < g.height; y++ {
-		for x := 0; x < g.width; x++ {
+	for y := range g.height {
+		for x := range g.width {
 			g.screen.SetContent(x, y, '.', nil, style)
 		}
 	}
@@ -208,14 +210,17 @@ func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
 			return
 		}
 
-		if playerState.Status == shared.Status_DISCONNECTED {
-			delete(g.players, playerState.PlayerId)
+		if playerState.GetStatus() == shared.Status_DISCONNECTED {
+			delete(g.players, playerState.GetPlayerId())
 			return
 		}
 
-		g.players[playerState.PlayerId] = &Player{
-			ID:       playerState.PlayerId,
-			Position: &Position{X: int(playerState.Position.X), Y: int(playerState.Position.Y)},
+		g.players[playerState.GetPlayerId()] = &Player{
+			ID: playerState.GetPlayerId(),
+			Position: &Position{
+				X: int(playerState.GetPosition().GetX()),
+				Y: int(playerState.GetPosition().GetY()),
+			},
 		}
 	}
 }

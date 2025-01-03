@@ -6,12 +6,14 @@ import (
 	"sync"
 )
 
-type GameID string
-type PlayerID string
+type (
+	GameID   string
+	PlayerID string
+)
 
 // 1つのゲーム内の状態を管理する
 type GameState struct {
-	mu sync.RWMutex
+	mu sync.RWMutex `exhaustruct:"optional"`
 
 	Players map[PlayerID]*PlayerState
 }

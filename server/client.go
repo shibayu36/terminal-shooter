@@ -4,6 +4,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
@@ -14,12 +15,12 @@ type Client interface {
 }
 
 type client struct {
-	id      string
+	id      string `exhaustruct:"optional"` // idは後から設定される
 	conn    net.Conn
-	sendMux sync.Mutex
+	sendMux sync.Mutex `exhaustruct:"optional"`
 }
 
-var _ Client = &client{}
+var _ Client = (*client)(nil)
 
 func (c *client) ID() string {
 	return c.id
@@ -30,5 +31,10 @@ func (c *client) Publish(publishPacket *packets.PublishPacket) error {
 	c.sendMux.Lock()
 	defer c.sendMux.Unlock()
 
-	return publishPacket.Write(c.conn)
+	err := publishPacket.Write(c.conn)
+	if err != nil {
+		return errors.Wrap(err, "failed to write publish packet")
+	}
+
+	return nil
 }
