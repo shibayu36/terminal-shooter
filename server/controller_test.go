@@ -32,13 +32,13 @@ func TestController_OnConnected(t *testing.T) {
 	cl1 := &mockClient{id: "id1"}
 	err := controller.OnConnected(cl1, nil)
 	require.NoError(t, err)
-	assert.Equal(t, state.GetPlayers()[PlayerID("id1")], &PlayerState{Position: &Position{X: 0, Y: 0}}, "cl1が追加された")
+	assert.Equal(t, &PlayerState{Position: &Position{X: 0, Y: 0}}, state.GetPlayers()[PlayerID("id1")], "cl1が追加された")
 	assert.Equal(t, broker.clients[cl1.id], cl1, "cl1がbrokerに追加された")
 
 	cl2 := &mockClient{id: "id2"}
 	err = controller.OnConnected(cl2, nil)
 	require.NoError(t, err)
-	assert.Equal(t, state.GetPlayers()[PlayerID("id2")], &PlayerState{Position: &Position{X: 0, Y: 0}}, "cl2が追加された")
+	assert.Equal(t, &PlayerState{Position: &Position{X: 0, Y: 0}}, state.GetPlayers()[PlayerID("id2")], "cl2が追加された")
 	assert.Equal(t, broker.clients[cl2.id], cl2, "cl2がbrokerに追加された")
 }
 
@@ -69,8 +69,8 @@ func TestController_OnSubscribed(t *testing.T) {
 	require.Len(t, cl3.published, 2)
 
 	// Topic名はplayer_state
-	assert.Equal(t, cl3.published[0].TopicName, "player_state")
-	assert.Equal(t, cl3.published[1].TopicName, "player_state")
+	assert.Equal(t, "player_state", cl3.published[0].TopicName)
+	assert.Equal(t, "player_state", cl3.published[1].TopicName)
 
 	idToState := map[string]*shared.PlayerState{}
 	for _, published := range cl3.published {
@@ -134,7 +134,7 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	// cl1, cl2, cl3にそれぞれ位置が送信されている
 	for _, cl := range []*mockClient{cl1, cl2, cl3} {
 		require.Len(t, cl.published, 1)
-		assert.Equal(t, cl.published[0].TopicName, "player_state")
+		assert.Equal(t, "player_state", cl.published[0].TopicName)
 		publishedState := &shared.PlayerState{}
 		err := proto.Unmarshal(cl.published[0].Payload, publishedState)
 		require.NoError(t, err)
@@ -174,7 +174,7 @@ func TestController_OnDisconnected(t *testing.T) {
 	// cl1の切断がcl2, cl3に送信されている
 	for _, cl := range []*mockClient{cl2, cl3} {
 		require.Len(t, cl.published, 1)
-		assert.Equal(t, cl.published[0].TopicName, "player_state")
+		assert.Equal(t, "player_state", cl.published[0].TopicName)
 		publishedState := &shared.PlayerState{}
 		err := proto.Unmarshal(cl.published[0].Payload, publishedState)
 		require.NoError(t, err)
