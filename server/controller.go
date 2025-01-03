@@ -39,20 +39,14 @@ func (c *Controller) OnSubscribed(client Client, _ *packets.SubscribePacket) err
 			continue
 		}
 
-		playerState := &shared.PlayerState{
-			PlayerId: string(playerID),
-			Position: &shared.Position{
-				X: int32(player.Position.X),
-				Y: int32(player.Position.Y),
-			},
-			Status: shared.Status_ALIVE,
-		}
-		payload, err := proto.Marshal(playerState)
+		sharedPlayerState := player.ToSharedPlayerState(shared.Status_ALIVE)
+
+		payload, err := proto.Marshal(sharedPlayerState)
 		if err != nil {
 			return errors.Wrap(err, "failed to marshal player state")
 		}
 
-		slog.Info("send player state on subscribe", "player", playerState.String())
+		slog.Info("send player state on subscribe", "player", sharedPlayerState.String())
 
 		err = c.broker.Send(client.ID(), "player_state", payload)
 		if err != nil {
@@ -75,6 +69,7 @@ func (c *Controller) OnPublished(client Client, publishPacket *packets.PublishPa
 func (c *Controller) OnDisconnected(client Client) error {
 	slog.Info("client disconnected", "client_id", client.ID())
 	c.broker.RemoveClient(client)
+
 	c.game.RemovePlayer(PlayerID(client.ID()))
 
 	playerState := &shared.PlayerState{
@@ -98,14 +93,22 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal player state")
 	}
-	position := &Position{
-		X: int(playerState.GetPosition().GetX()),
-		Y: int(playerState.GetPosition().GetY()),
-	}
-	c.game.MovePlayer(playerID, position, Direction(playerState.GetDirection()))
 
-	playerState.Status = shared.Status_ALIVE
-	payload, err := proto.Marshal(playerState)
+	direction, err := FromSharedDirection(playerState.GetDirection())
+	if err != nil {
+		return nil
+	}
+
+	updatedPlayer := c.game.MovePlayer(
+		playerID,
+		&Position{
+			X: int(playerState.GetPosition().GetX()),
+			Y: int(playerState.GetPosition().GetY()),
+		},
+		direction,
+	)
+
+	payload, err := proto.Marshal(updatedPlayer.ToSharedPlayerState(shared.Status_ALIVE))
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal player state")
 	}

@@ -47,11 +47,12 @@ func (gs *GameState) RemovePlayer(playerID PlayerID) {
 }
 
 // プレイヤーの位置を更新する
-func (gs *GameState) MovePlayer(playerID PlayerID, position *Position, direction Direction) {
+func (gs *GameState) MovePlayer(playerID PlayerID, position *Position, direction Direction) *PlayerState {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	gs.Players[playerID].Position = position
 	gs.Players[playerID].Direction = direction
+	return gs.Players[playerID]
 }
 
 // プレイヤー一覧を取得する

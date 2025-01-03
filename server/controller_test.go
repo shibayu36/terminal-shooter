@@ -88,14 +88,16 @@ func TestController_OnSubscribed(t *testing.T) {
 		idToState[publishedState.GetPlayerId()] = publishedState
 	}
 
-	// id1の位置が送信されている
+	// id1の位置と向きが送信されている
 	assert.EqualValues(t, 5, idToState["id1"].GetPosition().GetX())
 	assert.EqualValues(t, 10, idToState["id1"].GetPosition().GetY())
+	assert.Equal(t, shared.Direction_RIGHT, idToState["id1"].GetDirection())
 	assert.Equal(t, shared.Status_ALIVE, idToState["id1"].GetStatus())
 
-	// id2の位置が送信されている
+	// id2の位置と向きが送信されている
 	assert.EqualValues(t, 10, idToState["id2"].GetPosition().GetX())
 	assert.EqualValues(t, 20, idToState["id2"].GetPosition().GetY())
+	assert.Equal(t, shared.Direction_LEFT, idToState["id2"].GetDirection())
 	assert.Equal(t, shared.Status_ALIVE, idToState["id2"].GetStatus())
 }
 
@@ -121,8 +123,9 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	// cl3からのplayer_stateを受信する
 	{
 		payload, err := proto.Marshal(&shared.PlayerState{
-			PlayerId: "id3",
-			Position: &shared.Position{X: 15, Y: 25},
+			PlayerId:  "id3",
+			Position:  &shared.Position{X: 15, Y: 25},
+			Direction: shared.Direction_RIGHT,
 		})
 		require.NoError(t, err)
 
@@ -138,6 +141,7 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	// cl3の位置が更新されている
 	assert.EqualValues(t, 15, state.GetPlayers()[PlayerID("id3")].Position.X)
 	assert.EqualValues(t, 25, state.GetPlayers()[PlayerID("id3")].Position.Y)
+	assert.Equal(t, DirectionRight, state.GetPlayers()[PlayerID("id3")].Direction)
 
 	// cl1, cl2, cl3にそれぞれ位置が送信されている
 	for _, cl := range []*mockClient{cl1, cl2, cl3} {
