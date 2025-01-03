@@ -65,7 +65,8 @@ func NewGame() (*Game, error) {
 
 	// プレイヤーをwidthとheightの範囲内でランダムに配置
 	game.players[clientID] = &Player{
-		ID:       clientID,
+		ID: clientID,
+		//nolint:gosec
 		Position: &Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
 	}
 
@@ -134,6 +135,7 @@ func (g *Game) publishMyState() {
 }
 
 func (g *Game) handleEvent(event tcell.Event) bool {
+	//nolint:gocritic // ignore singleCaseSwitch
 	switch ev := event.(type) {
 	case *tcell.EventKey:
 		myPlayer := g.getMyPlayer()

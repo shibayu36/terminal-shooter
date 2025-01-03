@@ -30,12 +30,14 @@ func TestController_OnConnected(t *testing.T) {
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
-	controller.OnConnected(cl1, nil)
+	err := controller.OnConnected(cl1, nil)
+	require.NoError(t, err)
 	assert.Equal(t, state.GetPlayers()[PlayerID("id1")], &PlayerState{Position: &Position{X: 0, Y: 0}}, "cl1が追加された")
 	assert.Equal(t, broker.clients[cl1.id], cl1, "cl1がbrokerに追加された")
 
 	cl2 := &mockClient{id: "id2"}
-	controller.OnConnected(cl2, nil)
+	err = controller.OnConnected(cl2, nil)
+	require.NoError(t, err)
 	assert.Equal(t, state.GetPlayers()[PlayerID("id2")], &PlayerState{Position: &Position{X: 0, Y: 0}}, "cl2が追加された")
 	assert.Equal(t, broker.clients[cl2.id], cl2, "cl2がbrokerに追加された")
 }
@@ -48,17 +50,21 @@ func TestController_OnSubscribed(t *testing.T) {
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
-	controller.OnConnected(cl1, nil)
+	err := controller.OnConnected(cl1, nil)
+	require.NoError(t, err)
 	state.UpdatePlayerPosition(PlayerID("id1"), &Position{X: 5, Y: 10})
 
 	cl2 := &mockClient{id: "id2"}
-	controller.OnConnected(cl2, nil)
+	err = controller.OnConnected(cl2, nil)
+	require.NoError(t, err)
 	state.UpdatePlayerPosition(PlayerID("id2"), &Position{X: 10, Y: 20})
 
 	cl3 := &mockClient{id: "id3"}
-	controller.OnConnected(cl3, nil)
+	err = controller.OnConnected(cl3, nil)
+	require.NoError(t, err)
 
-	controller.OnSubscribed(cl3, nil)
+	err = controller.OnSubscribed(cl3, nil)
+	require.NoError(t, err)
 
 	require.Len(t, cl3.published, 2)
 
@@ -93,13 +99,16 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
-	controller.OnConnected(cl1, nil)
+	err := controller.OnConnected(cl1, nil)
+	require.NoError(t, err)
 
 	cl2 := &mockClient{id: "id2"}
-	controller.OnConnected(cl2, nil)
+	err = controller.OnConnected(cl2, nil)
+	require.NoError(t, err)
 
 	cl3 := &mockClient{id: "id3"}
-	controller.OnConnected(cl3, nil)
+	err = controller.OnConnected(cl3, nil)
+	require.NoError(t, err)
 
 	// cl3からのplayer_stateを受信する
 	{
@@ -114,7 +123,8 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 			Payload:   payload,
 		}
 
-		controller.OnPublished(cl3, packet)
+		err = controller.OnPublished(cl3, packet)
+		require.NoError(t, err)
 	}
 
 	// cl3の位置が更新されている
@@ -142,16 +152,20 @@ func TestController_OnDisconnected(t *testing.T) {
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
-	controller.OnConnected(cl1, nil)
+	err := controller.OnConnected(cl1, nil)
+	require.NoError(t, err)
 
 	cl2 := &mockClient{id: "id2"}
-	controller.OnConnected(cl2, nil)
+	err = controller.OnConnected(cl2, nil)
+	require.NoError(t, err)
 
 	cl3 := &mockClient{id: "id3"}
 	broker.AddClient(cl3)
-	controller.OnConnected(cl3, nil)
+	err = controller.OnConnected(cl3, nil)
+	require.NoError(t, err)
 
-	controller.OnDisconnected(cl1)
+	err = controller.OnDisconnected(cl1)
+	require.NoError(t, err)
 
 	assert.NotContains(t, state.GetPlayers(), PlayerID("id1"))
 	assert.Contains(t, state.GetPlayers(), PlayerID("id2"))
