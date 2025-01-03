@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 	"github.com/shibayu36/terminal-shooter/shared"
-
-	"github.com/cockroachdb/errors"
 	"google.golang.org/protobuf/proto"
 )
 
