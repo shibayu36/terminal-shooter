@@ -135,12 +135,12 @@ func (g *Game) publishMyState() {
 }
 
 func (g *Game) handleEvent(event tcell.Event) bool {
-	//nolint:gocritic // ignore singleCaseSwitch
 	switch ev := event.(type) {
 	case *tcell.EventKey:
 		myPlayer := g.getMyPlayer()
 		oldX, oldY := myPlayer.Position.X, myPlayer.Position.Y
 
+		//nolint:exhaustive
 		switch ev.Key() {
 		case tcell.KeyEscape, tcell.KeyCtrlC:
 			return true
