@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -23,12 +22,12 @@ func main() {
 	hook := NewController(broker, NewGameState())
 	server, err := NewServer(":1883", hook)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("%+v", err))
+		log.Fatalf("%+v", err)
 	}
 
 	go func() {
 		if err := server.Serve(); err != nil {
-			log.Fatal(fmt.Sprintf("%+v", err))
+			log.Fatalf("%+v", err)
 		}
 	}()
 
@@ -36,6 +35,6 @@ func main() {
 	<-done
 
 	if err := server.Shutdown(10 * time.Second); err != nil {
-		log.Fatal(fmt.Sprintf("%+v", err))
+		log.Fatalf("%+v", err)
 	}
 }
