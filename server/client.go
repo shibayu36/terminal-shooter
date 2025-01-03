@@ -14,9 +14,9 @@ type Client interface {
 }
 
 type client struct {
-	id      string
+	id      string `exhaustruct:"optional"` // idは後から設定される
 	conn    net.Conn
-	sendMux sync.Mutex
+	sendMux sync.Mutex `exhaustruct:"optional"`
 }
 
 var _ Client = (*client)(nil)

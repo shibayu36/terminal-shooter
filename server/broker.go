@@ -11,7 +11,7 @@ import (
 type Broker struct {
 	// クライアント管理
 	clients    map[string]Client
-	clientsMux sync.RWMutex
+	clientsMux sync.RWMutex `exhaustruct:"optional"`
 }
 
 func NewBroker() *Broker {

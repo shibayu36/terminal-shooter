@@ -27,8 +27,8 @@ type Server struct {
 
 	// サーバーの終了のため
 	activeConn map[net.Conn]struct{}
-	inShutdown atomic.Bool
-	wg         sync.WaitGroup
+	inShutdown atomic.Bool    `exhaustruct:"optional"`
+	wg         sync.WaitGroup `exhaustruct:"optional"`
 }
 
 func NewServer(address string, hook Hooker) (*Server, error) {
