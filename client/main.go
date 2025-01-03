@@ -19,8 +19,9 @@ type Position struct {
 }
 
 type Player struct {
-	ID       string
-	Position *Position
+	ID        string
+	Position  *Position
+	Direction shared.Direction
 }
 
 type Game struct {
@@ -68,7 +69,8 @@ func NewGame() (*Game, error) {
 	game.players[clientID] = &Player{
 		ID: clientID,
 		//nolint:gosec
-		Position: &Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
+		Position:  &Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
+		Direction: shared.Direction_UP,
 	}
 
 	// 全てのtopicをsubscribeする
@@ -120,6 +122,7 @@ func (g *Game) publishMyState() {
 			X: int32(myPlayer.Position.X),
 			Y: int32(myPlayer.Position.Y),
 		},
+		Direction: myPlayer.Direction,
 	}
 
 	data, err := proto.Marshal(state)
@@ -135,41 +138,74 @@ func (g *Game) publishMyState() {
 	}
 }
 
+func (g *Game) movePlayer(dx, dy int) {
+	myPlayer := g.getMyPlayer()
+	oldX, oldY := myPlayer.Position.X, myPlayer.Position.Y
+	oldDirection := myPlayer.Direction
+
+	// 移動方向からdirectionを決定
+	var direction shared.Direction
+	switch {
+	case dx < 0:
+		direction = shared.Direction_LEFT
+	case dx > 0:
+		direction = shared.Direction_RIGHT
+	case dy < 0:
+		direction = shared.Direction_UP
+	case dy > 0:
+		direction = shared.Direction_DOWN
+	default:
+		direction = myPlayer.Direction // 移動がない場合は現在の向きを維持
+	}
+
+	if newX := myPlayer.Position.X + dx; newX >= 0 && newX < g.width {
+		myPlayer.Position.X = newX
+	}
+	if newY := myPlayer.Position.Y + dy; newY >= 0 && newY < g.height {
+		myPlayer.Position.Y = newY
+	}
+	myPlayer.Direction = direction
+
+	// 位置か方向が変更されたら自分の状態をサーバーに送る
+	if oldX != myPlayer.Position.X || oldY != myPlayer.Position.Y || oldDirection != direction {
+		g.publishMyState()
+	}
+}
+
 func (g *Game) handleEvent(event tcell.Event) bool {
 	//nolint:gocritic,varnamelen // ignore singleCaseSwitch
 	switch ev := event.(type) {
 	case *tcell.EventKey:
-		myPlayer := g.getMyPlayer()
-		oldX, oldY := myPlayer.Position.X, myPlayer.Position.Y
-
 		//nolint:exhaustive
 		switch ev.Key() {
 		case tcell.KeyEscape, tcell.KeyCtrlC:
 			return true
 		case tcell.KeyLeft:
-			if myPlayer.Position.X > 0 {
-				myPlayer.Position.X--
-			}
+			g.movePlayer(-1, 0)
 		case tcell.KeyRight:
-			if myPlayer.Position.X < g.width-1 {
-				myPlayer.Position.X++
-			}
+			g.movePlayer(1, 0)
 		case tcell.KeyUp:
-			if myPlayer.Position.Y > 0 {
-				myPlayer.Position.Y--
-			}
+			g.movePlayer(0, -1)
 		case tcell.KeyDown:
-			if myPlayer.Position.Y < g.height-1 {
-				myPlayer.Position.Y++
-			}
-		}
-
-		// 位置が変更されたら自分の位置をサーバーに送る
-		if oldX != myPlayer.Position.X || oldY != myPlayer.Position.Y {
-			g.publishMyState()
+			g.movePlayer(0, 1)
 		}
 	}
 	return false
+}
+
+func getDirectionRune(direction shared.Direction) rune {
+	switch direction {
+	case shared.Direction_UP:
+		return '^'
+	case shared.Direction_DOWN:
+		return 'v'
+	case shared.Direction_LEFT:
+		return '<'
+	case shared.Direction_RIGHT:
+		return '>'
+	default:
+		return '^'
+	}
 }
 
 func (g *Game) draw() {
@@ -187,11 +223,17 @@ func (g *Game) draw() {
 	myPlayerStyle := tcell.StyleDefault.Foreground(tcell.ColorGreen)
 	otherPlayerStyle := tcell.StyleDefault.Foreground(tcell.ColorRed)
 	for _, player := range g.players {
+		style := otherPlayerStyle
 		if player.ID == g.myPlayerID {
-			g.screen.SetContent(player.Position.X, player.Position.Y, '◎', nil, myPlayerStyle)
-		} else {
-			g.screen.SetContent(player.Position.X, player.Position.Y, '◎', nil, otherPlayerStyle)
+			style = myPlayerStyle
 		}
+		g.screen.SetContent(
+			player.Position.X,
+			player.Position.Y,
+			getDirectionRune(player.Direction),
+			nil,
+			style,
+		)
 	}
 
 	g.screen.Show()
@@ -221,6 +263,7 @@ func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
 				X: int(playerState.GetPosition().GetX()),
 				Y: int(playerState.GetPosition().GetY()),
 			},
+			Direction: playerState.GetDirection(),
 		}
 	}
 }
