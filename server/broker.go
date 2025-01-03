@@ -37,6 +37,7 @@ func (b *Broker) Broadcast(topic string, payload []byte) {
 	b.clientsMux.RLock()
 	defer b.clientsMux.RUnlock()
 
+	//nolint:forcetypeassert
 	publishPacket := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
 	publishPacket.TopicName = topic
 	publishPacket.Payload = payload
@@ -57,6 +58,7 @@ func (b *Broker) Send(clientID string, topic string, payload []byte) error {
 		return errors.New("client not found")
 	}
 
+	//nolint:forcetypeassert
 	publishPacket := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
 	publishPacket.TopicName = topic
 	publishPacket.Payload = payload

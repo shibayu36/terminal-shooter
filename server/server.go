@@ -148,6 +148,7 @@ func (s *Server) handlePacket(client *client, packet packets.ControlPacket) erro
 	case *packets.SubscribePacket:
 		return s.handleSubscribe(client, p)
 	case *packets.PingreqPacket:
+		//nolint:forcetypeassert
 		pingresp := packets.NewControlPacket(packets.Pingresp).(*packets.PingrespPacket)
 		return pingresp.Write(client.conn)
 	case *packets.DisconnectPacket:
@@ -162,6 +163,7 @@ func (s *Server) handlePacket(client *client, packet packets.ControlPacket) erro
 // handleConnect handles CONNECT packets
 func (s *Server) handleConnect(client *client, cp *packets.ConnectPacket) error {
 	// CONNACK パケットの作成と送信
+	//nolint:forcetypeassert
 	connack := packets.NewControlPacket(packets.Connack).(*packets.ConnackPacket)
 	connack.ReturnCode = packets.Accepted
 	connack.SessionPresent = false
@@ -193,6 +195,7 @@ func (s *Server) handlePublish(client *client, pp *packets.PublishPacket) error 
 
 // handleSubscribe handles SUBSCRIBE packets
 func (s *Server) handleSubscribe(client *client, sp *packets.SubscribePacket) error {
+	//nolint:forcetypeassert
 	ack := packets.NewControlPacket(packets.Suback).(*packets.SubackPacket)
 	ack.MessageID = sp.MessageID
 	ack.ReturnCodes = make([]byte, len(sp.Topics)) // QoS=0 only
