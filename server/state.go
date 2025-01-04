@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/cockroachdb/errors"
+	"github.com/google/uuid"
 	"github.com/shibayu36/terminal-shooter/shared"
 )
 
@@ -20,11 +21,13 @@ type GameState struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 
 	Players map[PlayerID]*PlayerState
+	Items   map[ItemID]Item
 }
 
 func NewGameState() *GameState {
 	return &GameState{
 		Players: make(map[PlayerID]*PlayerState),
+		Items:   make(map[ItemID]Item),
 	}
 }
 
@@ -61,6 +64,15 @@ func (gs *GameState) GetPlayers() map[PlayerID]*PlayerState {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
 	return gs.Players
+}
+
+// 弾を追加する
+func (gs *GameState) AddBullet(position *Position, direction Direction) ItemID {
+	gs.mu.Lock()
+	defer gs.mu.Unlock()
+	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
+	gs.Items[bullet.ID()] = bullet
+	return bullet.ID()
 }
 
 // GetState ゲームの状態をデバッグ用に表示する
@@ -121,6 +133,8 @@ type Bullet struct {
 
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
+
+var _ Item = (*Bullet)(nil)
 
 func NewBullet(id ItemID, position *Position, direction Direction) *Bullet {
 	return &Bullet{

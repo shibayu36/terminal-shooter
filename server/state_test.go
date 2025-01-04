@@ -7,31 +7,47 @@ import (
 )
 
 func Test_GameState(t *testing.T) {
-	gameState := NewGameState()
+	t.Run("プレイヤーを追加できる", func(t *testing.T) {
+		gameState := NewGameState()
 
-	// player1を追加
-	gameState.AddPlayer("player1")
-	assert.Equal(t, 0, gameState.GetPlayers()["player1"].Position.X)
-	assert.Equal(t, 0, gameState.GetPlayers()["player1"].Position.Y)
-	assert.Equal(t, DirectionUp, gameState.GetPlayers()["player1"].Direction)
+		// player1を追加
+		gameState.AddPlayer("player1")
+		assert.Equal(t, 0, gameState.GetPlayers()["player1"].Position.X)
+		assert.Equal(t, 0, gameState.GetPlayers()["player1"].Position.Y)
+		assert.Equal(t, DirectionUp, gameState.GetPlayers()["player1"].Direction)
 
-	// player1の位置を更新
-	gameState.MovePlayer("player1", &Position{X: 2, Y: 8}, DirectionRight)
-	assert.Equal(t, 2, gameState.GetPlayers()["player1"].Position.X)
-	assert.Equal(t, 8, gameState.GetPlayers()["player1"].Position.Y)
-	assert.Equal(t, DirectionRight, gameState.GetPlayers()["player1"].Direction)
+		// player1の位置を更新
+		gameState.MovePlayer("player1", &Position{X: 2, Y: 8}, DirectionRight)
+		assert.Equal(t, 2, gameState.GetPlayers()["player1"].Position.X)
+		assert.Equal(t, 8, gameState.GetPlayers()["player1"].Position.Y)
+		assert.Equal(t, DirectionRight, gameState.GetPlayers()["player1"].Direction)
 
-	// player2を追加
-	gameState.AddPlayer("player2")
-	assert.Len(t, gameState.GetPlayers(), 2)
-	assert.Equal(t, 0, gameState.GetPlayers()["player2"].Position.X)
-	assert.Equal(t, 0, gameState.GetPlayers()["player2"].Position.Y)
-	assert.Equal(t, DirectionUp, gameState.GetPlayers()["player2"].Direction)
+		// player2を追加
+		gameState.AddPlayer("player2")
+		assert.Len(t, gameState.GetPlayers(), 2)
+		assert.Equal(t, 0, gameState.GetPlayers()["player2"].Position.X)
+		assert.Equal(t, 0, gameState.GetPlayers()["player2"].Position.Y)
+		assert.Equal(t, DirectionUp, gameState.GetPlayers()["player2"].Direction)
 
-	// player1を削除
-	gameState.RemovePlayer("player1")
-	assert.Len(t, gameState.GetPlayers(), 1)
-	assert.Equal(t, 0, gameState.GetPlayers()["player2"].Position.X)
+		// player1を削除
+		gameState.RemovePlayer("player1")
+		assert.Len(t, gameState.GetPlayers(), 1)
+		assert.Equal(t, 0, gameState.GetPlayers()["player2"].Position.X)
+	})
+
+	t.Run("弾を追加できる", func(t *testing.T) {
+		gameState := NewGameState()
+
+		itemID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionRight)
+		assert.Equal(t, 1, len(gameState.Items))
+		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID1].Type())
+		assert.Equal(t, &Position{X: 3, Y: 8}, gameState.Items[itemID1].Position())
+
+		itemID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
+		assert.Equal(t, 2, len(gameState.Items))
+		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID2].Type())
+		assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[itemID2].Position())
+	})
 }
 
 func Test_Bullet(t *testing.T) {
