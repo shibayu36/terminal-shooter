@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -119,4 +120,32 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 	slog.Info("all players", "players", c.game.String())
 
 	return nil
+}
+
+// StartPublishLoop ゲームの状態を定期的にpublishするループを開始する
+func (c *Controller) StartPublishLoop(ctx context.Context, updatedItemsCh <-chan []Item) {
+	for {
+		select {
+		case updatedItems := <-updatedItemsCh:
+			for _, item := range updatedItems {
+				itemState := &shared.ItemState{
+					ItemId: string(item.ID()),
+					Type:   shared.ItemType_BULLET,
+					Position: &shared.Position{
+						X: int32(item.Position().X),
+						Y: int32(item.Position().Y),
+					},
+				}
+
+				payload, err := proto.Marshal(itemState)
+				if err != nil {
+					slog.Error("failed to marshal item state", "error", err)
+					continue
+				}
+				c.broker.Broadcast("item_state", payload)
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
 }

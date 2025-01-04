@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
 	"github.com/shibayu36/terminal-shooter/shared"
@@ -195,4 +197,52 @@ func TestController_OnDisconnected(t *testing.T) {
 
 	// cl1がbrokerから削除されている
 	assert.NotContains(t, broker.clients, cl1.id)
+}
+
+func TestController_StartPublishLoop(t *testing.T) {
+	broker := NewBroker()
+	state := NewGameState(30, 30)
+	controller := NewController(broker, state)
+
+	cl1 := &mockClient{id: "id1"}
+	err := controller.OnConnected(cl1, nil)
+	require.NoError(t, err)
+
+	cl2 := &mockClient{id: "id2"}
+	err = controller.OnConnected(cl2, nil)
+	require.NoError(t, err)
+
+	updatedItemsCh := make(chan []Item, 10)
+	go controller.StartPublishLoop(context.Background(), updatedItemsCh)
+
+	updatedItemsCh <- []Item{
+		NewBullet(ItemID("item1"), &Position{X: 1, Y: 2}, DirectionRight),
+		NewBullet(ItemID("item2"), &Position{X: 2, Y: 3}, DirectionUp),
+	}
+
+	// TODO: 待つための良い手法があれば変更
+	time.Sleep(10 * time.Millisecond)
+
+	// アイテムの状態が全てのクライアントに送信されている
+	for _, cl := range []*mockClient{cl1, cl2} {
+		require.Len(t, cl.published, 2)
+		assert.Equal(t, "item_state", cl.published[0].TopicName)
+		assert.Equal(t, "item_state", cl.published[1].TopicName)
+
+		idToState := map[string]*shared.ItemState{}
+		for _, published := range cl.published {
+			publishedState := &shared.ItemState{}
+			err := proto.Unmarshal(published.Payload, publishedState)
+			require.NoError(t, err)
+			idToState[publishedState.GetItemId()] = publishedState
+		}
+
+		assert.EqualValues(t, 1, idToState["item1"].GetPosition().GetX())
+		assert.EqualValues(t, 2, idToState["item1"].GetPosition().GetY())
+		assert.Equal(t, shared.ItemType_BULLET, idToState["item1"].GetType())
+
+		assert.EqualValues(t, 2, idToState["item2"].GetPosition().GetX())
+		assert.EqualValues(t, 3, idToState["item2"].GetPosition().GetY())
+		assert.Equal(t, shared.ItemType_BULLET, idToState["item2"].GetType())
+	}
 }

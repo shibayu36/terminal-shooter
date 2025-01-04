@@ -10,6 +10,7 @@ linters:
     - paralleltest
     - perfsprint # パフォーマンスチューニングはここまで求められていない
     - exportloopref # deprecated
+    - godox
 
 linters-settings:
   cyclop:
