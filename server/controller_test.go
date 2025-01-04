@@ -212,13 +212,13 @@ func TestController_StartPublishLoop(t *testing.T) {
 	err = controller.OnConnected(cl2, nil)
 	require.NoError(t, err)
 
-	updatedItemsCh := make(chan []Item, 10)
-	go controller.StartPublishLoop(context.Background(), updatedItemsCh)
+	itemsUpdatedCh := make(chan struct{}, 10)
+	go controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
 
-	updatedItemsCh <- []Item{
-		NewBullet(ItemID("item1"), &Position{X: 1, Y: 2}, DirectionRight),
-		NewBullet(ItemID("item2"), &Position{X: 2, Y: 3}, DirectionUp),
-	}
+	bulletID1 := state.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
+	bulletID2 := state.AddBullet(&Position{X: 2, Y: 3}, DirectionUp)
+
+	itemsUpdatedCh <- struct{}{}
 
 	// TODO: 待つための良い手法があれば変更
 	time.Sleep(10 * time.Millisecond)
@@ -229,20 +229,20 @@ func TestController_StartPublishLoop(t *testing.T) {
 		assert.Equal(t, "item_state", cl.published[0].TopicName)
 		assert.Equal(t, "item_state", cl.published[1].TopicName)
 
-		idToState := map[string]*shared.ItemState{}
+		idToState := map[ItemID]*shared.ItemState{}
 		for _, published := range cl.published {
 			publishedState := &shared.ItemState{}
 			err := proto.Unmarshal(published.Payload, publishedState)
 			require.NoError(t, err)
-			idToState[publishedState.GetItemId()] = publishedState
+			idToState[ItemID(publishedState.GetItemId())] = publishedState
 		}
 
-		assert.EqualValues(t, 1, idToState["item1"].GetPosition().GetX())
-		assert.EqualValues(t, 2, idToState["item1"].GetPosition().GetY())
-		assert.Equal(t, shared.ItemType_BULLET, idToState["item1"].GetType())
+		assert.EqualValues(t, 1, idToState[bulletID1].GetPosition().GetX())
+		assert.EqualValues(t, 2, idToState[bulletID1].GetPosition().GetY())
+		assert.Equal(t, shared.ItemType_BULLET, idToState[bulletID1].GetType())
 
-		assert.EqualValues(t, 2, idToState["item2"].GetPosition().GetX())
-		assert.EqualValues(t, 3, idToState["item2"].GetPosition().GetY())
-		assert.Equal(t, shared.ItemType_BULLET, idToState["item2"].GetType())
+		assert.EqualValues(t, 2, idToState[bulletID2].GetPosition().GetX())
+		assert.EqualValues(t, 3, idToState[bulletID2].GetPosition().GetY())
+		assert.Equal(t, shared.ItemType_BULLET, idToState[bulletID2].GetType())
 	}
 }

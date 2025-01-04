@@ -123,11 +123,11 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 }
 
 // StartPublishLoop ゲームの状態を定期的にpublishするループを開始する
-func (c *Controller) StartPublishLoop(ctx context.Context, updatedItemsCh <-chan []Item) {
+func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan struct{}) {
 	for {
 		select {
-		case updatedItems := <-updatedItemsCh:
-			for _, item := range updatedItems {
+		case <-itemsUpdatedCh:
+			for _, item := range c.game.GetItems() {
 				itemState := &shared.ItemState{
 					ItemId: string(item.ID()),
 					Type:   shared.ItemType_BULLET,
