@@ -24,6 +24,12 @@ type Player struct {
 	Direction shared.Direction
 }
 
+type Item struct {
+	ID       string
+	Type     shared.ItemType
+	Position *Position
+}
+
 type Game struct {
 	mqtt mqtt.Client
 
@@ -31,6 +37,7 @@ type Game struct {
 
 	myPlayerID string
 	players    map[string]*Player
+	items      map[string]*Item
 	width      int
 	height     int
 }
@@ -63,6 +70,7 @@ func NewGame() (*Game, error) {
 		width:      30,
 		height:     30,
 		players:    make(map[string]*Player),
+		items:      make(map[string]*Item),
 	}
 
 	// プレイヤーをwidthとheightの範囲内でランダムに配置
@@ -234,6 +242,23 @@ func (g *Game) draw() {
 		)
 	}
 
+	// アイテムを描画
+	itemStyle := tcell.StyleDefault.Foreground(tcell.ColorYellow)
+	for _, item := range g.items {
+		var r rune
+		switch item.Type {
+		case shared.ItemType_BULLET:
+			r = '*'
+		}
+		g.screen.SetContent(
+			item.Position.X,
+			item.Position.Y,
+			r,
+			nil,
+			itemStyle,
+		)
+	}
+
 	g.screen.Show()
 }
 
@@ -242,7 +267,8 @@ func (g *Game) getMyPlayer() *Player {
 }
 
 func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
-	if message.Topic() == "player_state" {
+	switch message.Topic() {
+	case "player_state":
 		playerState := &shared.PlayerState{}
 		err := proto.Unmarshal(message.Payload(), playerState)
 		if err != nil {
@@ -262,6 +288,22 @@ func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
 				Y: int(playerState.GetPosition().GetY()),
 			},
 			Direction: playerState.GetDirection(),
+		}
+	case "item_state":
+		itemState := &shared.ItemState{}
+		err := proto.Unmarshal(message.Payload(), itemState)
+		if err != nil {
+			log.Printf("Failed to unmarshal item state: %v", err)
+			return
+		}
+
+		g.items[itemState.GetItemId()] = &Item{
+			ID:   itemState.GetItemId(),
+			Type: itemState.GetType(),
+			Position: &Position{
+				X: int(itemState.GetPosition().GetX()),
+				Y: int(itemState.GetPosition().GetY()),
+			},
 		}
 	}
 }
