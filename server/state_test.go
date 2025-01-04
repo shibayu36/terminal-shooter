@@ -50,6 +50,32 @@ func Test_GameState(t *testing.T) {
 	})
 }
 
+func Test_GameState_update(t *testing.T) {
+	gameState := NewGameState()
+
+	// 弾を追加
+	bulletID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionLeft)
+	// 2回動かす
+	gameState.update()
+	gameState.update()
+
+	// 弾をもう一つ追加
+	bulletID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionUp)
+
+	// 28回動かすと、bullet1だけ動く
+	for i := 0; i < 28; i++ {
+		gameState.update()
+	}
+	assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
+	assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[bulletID2].Position())
+
+	// さらに2回動かすと、bullet2が動く
+	gameState.update()
+	gameState.update()
+	assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
+	assert.Equal(t, &Position{X: 1, Y: 3}, gameState.Items[bulletID2].Position())
+}
+
 func Test_Bullet(t *testing.T) {
 	bullet := NewBullet("bullet1", &Position{X: 3, Y: 8}, DirectionRight)
 

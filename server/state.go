@@ -31,6 +31,13 @@ func NewGameState() *GameState {
 	}
 }
 
+// ゲーム状態を更新する
+func (gs *GameState) update() {
+	for _, item := range gs.Items {
+		item.Update()
+	}
+}
+
 // プレイヤーを追加する
 // 全てデフォルトで初期化する
 func (gs *GameState) AddPlayer(playerID PlayerID) {
