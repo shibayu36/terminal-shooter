@@ -26,15 +26,19 @@ type GameState struct {
 	Players map[PlayerID]*PlayerState
 	Items   map[ItemID]Item
 
+	// 削除されたアイテムを管理する
+	RemovedItems map[ItemID]Item
+
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
 func NewGameState(width, height int) *GameState {
 	return &GameState{
-		Width:   width,
-		Height:  height,
-		Players: make(map[PlayerID]*PlayerState),
-		Items:   make(map[ItemID]Item),
+		Width:        width,
+		Height:       height,
+		Players:      make(map[PlayerID]*PlayerState),
+		Items:        make(map[ItemID]Item),
+		RemovedItems: make(map[ItemID]Item),
 	}
 }
 
@@ -112,6 +116,34 @@ func (gs *GameState) GetItems() map[ItemID]Item {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
 	return gs.Items
+}
+
+// 削除されたアイテム一覧を取得する
+func (gs *GameState) GetRemovedItems() map[ItemID]Item {
+	gs.mu.Lock()
+	defer gs.mu.Unlock()
+	return gs.RemovedItems
+}
+
+// 削除されたアイテムをクリアする
+func (gs *GameState) ClearRemovedItems(removedItems map[ItemID]Item) {
+	gs.mu.Lock()
+	defer gs.mu.Unlock()
+	for _, item := range removedItems {
+		delete(gs.RemovedItems, item.ID())
+	}
+}
+
+// アイテムを削除する
+func (gs *GameState) removeItem(itemID ItemID) {
+	gs.mu.Lock()
+	defer gs.mu.Unlock()
+	item, ok := gs.Items[itemID]
+	if !ok {
+		return
+	}
+	delete(gs.Items, itemID)
+	gs.RemovedItems[itemID] = item
 }
 
 // 弾を追加する

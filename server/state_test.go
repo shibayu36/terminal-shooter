@@ -117,6 +117,56 @@ func Test_GameState_update(t *testing.T) {
 	assert.Len(t, itemsUpdatedCh, 2)
 }
 
+func Test_GameState_ItemsOperation(t *testing.T) {
+	gameState := NewGameState(30, 30)
+
+	bulletID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionLeft)
+	bullet1 := NewBullet(bulletID1, &Position{X: 3, Y: 8}, DirectionLeft)
+	bulletID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionUp)
+	bullet2 := NewBullet(bulletID2, &Position{X: 1, Y: 2}, DirectionUp)
+	bulletID3 := gameState.AddBullet(&Position{X: 2, Y: 3}, DirectionRight)
+	bullet3 := NewBullet(bulletID3, &Position{X: 2, Y: 3}, DirectionRight)
+
+	items := gameState.GetItems()
+	assert.Len(t, items, 3)
+	assert.Equal(t, map[ItemID]Item{
+		bulletID1: bullet1,
+		bulletID2: bullet2,
+		bulletID3: bullet3,
+	}, items)
+
+	// bulletID1と3を削除
+	gameState.removeItem(bulletID1)
+	gameState.removeItem(bulletID3)
+
+	// Itemsにはbullet2のみ残っている
+	items = gameState.GetItems()
+	assert.Len(t, items, 1)
+	assert.Equal(t, map[ItemID]Item{
+		bulletID2: bullet2,
+	}, items)
+
+	// RemovedItemsにはbullet1とbullet3が残っている
+	removedItems := gameState.GetRemovedItems()
+	assert.Len(t, removedItems, 2)
+	assert.Equal(t, map[ItemID]Item{
+		bulletID1: bullet1,
+		bulletID3: bullet3,
+	}, removedItems)
+
+	// ClearRemovedItemsでbullet1のみ削除する
+	gameState.ClearRemovedItems(map[ItemID]Item{
+		bulletID1: bullet1,
+	})
+
+	// RemovedItemsにはbullet1のみ残っている
+	removedItems = gameState.GetRemovedItems()
+	assert.Len(t, removedItems, 1)
+	assert.Equal(t, map[ItemID]Item{
+		bulletID3: bullet3,
+	}, removedItems)
+}
+
 func Test_Bullet(t *testing.T) {
 	bullet := NewBullet("bullet1", &Position{X: 3, Y: 8}, DirectionRight)
 
