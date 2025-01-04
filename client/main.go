@@ -297,6 +297,11 @@ func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
 			return
 		}
 
+		if itemState.GetStatus() == shared.ItemStatus_REMOVED {
+			delete(g.items, itemState.GetItemId())
+			return
+		}
+
 		g.items[itemState.GetItemId()] = &Item{
 			ID:   itemState.GetItemId(),
 			Type: itemState.GetType(),
