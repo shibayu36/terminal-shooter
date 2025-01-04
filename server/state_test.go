@@ -10,7 +10,7 @@ import (
 
 func Test_GameState(t *testing.T) {
 	t.Run("プレイヤーを追加できる", func(t *testing.T) {
-		gameState := NewGameState()
+		gameState := NewGameState(30, 30)
 
 		// player1を追加
 		gameState.AddPlayer("player1")
@@ -38,7 +38,7 @@ func Test_GameState(t *testing.T) {
 	})
 
 	t.Run("弾を追加できる", func(t *testing.T) {
-		gameState := NewGameState()
+		gameState := NewGameState(30, 30)
 
 		itemID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionRight)
 		assert.Equal(t, 1, len(gameState.Items))
@@ -54,7 +54,7 @@ func Test_GameState(t *testing.T) {
 
 func Test_GameState_StartUpdateLoop(t *testing.T) {
 	t.Run("updateが定期的に実行される", func(t *testing.T) {
-		gameState := NewGameState()
+		gameState := NewGameState(30, 30)
 
 		bulletID := gameState.AddBullet(&Position{X: 0, Y: 0}, DirectionRight)
 
@@ -70,7 +70,7 @@ func Test_GameState_StartUpdateLoop(t *testing.T) {
 	})
 
 	t.Run("contextのキャンセルでループが終了する", func(t *testing.T) {
-		gameState := NewGameState()
+		gameState := NewGameState(30, 30)
 		ctx, cancel := context.WithCancel(context.Background())
 
 		bulletID := gameState.AddBullet(&Position{X: 0, Y: 0}, DirectionRight)
@@ -87,7 +87,7 @@ func Test_GameState_StartUpdateLoop(t *testing.T) {
 }
 
 func Test_GameState_update(t *testing.T) {
-	gameState := NewGameState()
+	gameState := NewGameState(30, 30)
 
 	// 弾を追加
 	bulletID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionLeft)

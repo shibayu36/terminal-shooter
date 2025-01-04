@@ -20,14 +20,19 @@ type (
 
 // 1つのゲーム内の状態を管理する
 type GameState struct {
-	mu sync.RWMutex `exhaustruct:"optional"`
+	Width  int
+	Height int
 
 	Players map[PlayerID]*PlayerState
 	Items   map[ItemID]Item
+
+	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
-func NewGameState() *GameState {
+func NewGameState(width, height int) *GameState {
 	return &GameState{
+		Width:   width,
+		Height:  height,
 		Players: make(map[PlayerID]*PlayerState),
 		Items:   make(map[ItemID]Item),
 	}

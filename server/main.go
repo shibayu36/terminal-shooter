@@ -19,7 +19,7 @@ func main() {
 	}()
 
 	broker := NewBroker()
-	hook := NewController(broker, NewGameState())
+	hook := NewController(broker, NewGameState(30, 30))
 	server, err := NewServer(":1883", hook)
 	if err != nil {
 		log.Fatalf("%+v", err)

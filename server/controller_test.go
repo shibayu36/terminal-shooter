@@ -26,7 +26,7 @@ func (c *mockClient) Publish(publishPacket *packets.PublishPacket) error {
 
 func TestController_OnConnected(t *testing.T) {
 	broker := NewBroker()
-	state := NewGameState()
+	state := NewGameState(30, 30)
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
@@ -54,7 +54,7 @@ func TestController_OnSubscribed(t *testing.T) {
 	// 自分以外の既存プレイヤー全員に自分の位置を送信する
 
 	broker := NewBroker()
-	state := NewGameState()
+	state := NewGameState(30, 30)
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
@@ -105,7 +105,7 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	// player_stateパケットを受信したら、そのプレイヤーの位置を更新し、全員にそのプレイヤーの位置を送信する
 
 	broker := NewBroker()
-	state := NewGameState()
+	state := NewGameState(30, 30)
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
@@ -160,7 +160,7 @@ func TestController_OnDisconnected(t *testing.T) {
 	// 切断したら、そのプレイヤーを削除し、そのプレイヤーが切断したことを全員に送信する
 
 	broker := NewBroker()
-	state := NewGameState()
+	state := NewGameState(30, 30)
 	controller := NewController(broker, state)
 
 	cl1 := &mockClient{id: "id1"}
