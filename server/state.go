@@ -39,26 +39,35 @@ func NewGameState(width, height int) *GameState {
 }
 
 // ゲーム状態を更新するループを開始する
-func (gs *GameState) StartUpdateLoop(ctx context.Context) {
+func (gs *GameState) StartUpdateLoop(ctx context.Context) (updatedItemsCh chan []Item) {
 	ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
 
+	updatedItemsCh = make(chan []Item, 10)
 	go func() {
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				gs.update()
+				gs.update(updatedItemsCh)
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
+
+	return updatedItemsCh
 }
 
 // ゲーム状態を更新する
-func (gs *GameState) update() {
+func (gs *GameState) update(updatedItemsCh chan<- []Item) {
+	updatedItems := []Item{}
 	for _, item := range gs.Items {
-		item.Update()
+		if item.Update() {
+			updatedItems = append(updatedItems, item)
+		}
+	}
+	if len(updatedItems) > 0 {
+		updatedItemsCh <- updatedItems
 	}
 }
 
