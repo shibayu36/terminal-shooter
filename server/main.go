@@ -1,22 +1,16 @@
 package main
 
 import (
+	"context"
 	"log"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 )
 
 func main() {
-	// サーバーが中断されるまで実行するためのシグナルチャネルを作成
-	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		done <- true
-	}()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
 	broker := NewBroker()
 	hook := NewController(broker, NewGameState(30, 30))
@@ -32,7 +26,7 @@ func main() {
 	}()
 
 	// サーバーが中断されるまで実行
-	<-done
+	<-ctx.Done()
 
 	if err := server.Shutdown(10 * time.Second); err != nil {
 		log.Fatalf("%+v", err)
