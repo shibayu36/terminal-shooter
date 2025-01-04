@@ -39,27 +39,28 @@ func NewGameState(width, height int) *GameState {
 }
 
 // ゲーム状態を更新するループを開始する
-func (gs *GameState) StartUpdateLoop(ctx context.Context) (updatedItemsCh chan []Item) {
+// アイテムが何らか更新されたことを通知するチャネルを返す
+func (gs *GameState) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 	ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
 
-	updatedItemsCh = make(chan []Item, 10)
+	itemsUpdatedCh := make(chan struct{}, 10)
 	go func() {
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				gs.update(updatedItemsCh)
+				gs.update(itemsUpdatedCh)
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
-	return updatedItemsCh
+	return itemsUpdatedCh
 }
 
 // ゲーム状態を更新する
-func (gs *GameState) update(updatedItemsCh chan<- []Item) {
+func (gs *GameState) update(updatedItemsCh chan<- struct{}) {
 	updatedItems := []Item{}
 	for _, item := range gs.Items {
 		if item.Update() {
@@ -67,7 +68,7 @@ func (gs *GameState) update(updatedItemsCh chan<- []Item) {
 		}
 	}
 	if len(updatedItems) > 0 {
-		updatedItemsCh <- updatedItems
+		updatedItemsCh <- struct{}{}
 	}
 }
 
@@ -104,6 +105,13 @@ func (gs *GameState) GetPlayers() map[PlayerID]*PlayerState {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
 	return gs.Players
+}
+
+// アイテム一覧を取得する
+func (gs *GameState) GetItems() map[ItemID]Item {
+	gs.mu.RLock()
+	defer gs.mu.RUnlock()
+	return gs.Items
 }
 
 // 弾を追加する

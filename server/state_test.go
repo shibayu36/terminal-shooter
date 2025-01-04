@@ -87,40 +87,34 @@ func Test_GameState_StartUpdateLoop(t *testing.T) {
 }
 
 func Test_GameState_update(t *testing.T) {
-	updatedItemsCh := make(chan []Item, 10)
+	itemsUpdatedCh := make(chan struct{}, 10)
 	gameState := NewGameState(30, 30)
 
 	// 弾を追加
 	bulletID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionLeft)
 	// 2回動かす
-	gameState.update(updatedItemsCh)
-	gameState.update(updatedItemsCh)
+	gameState.update(itemsUpdatedCh)
+	gameState.update(itemsUpdatedCh)
 
 	// 弾をもう一つ追加
 	bulletID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionUp)
 
 	// 28回動かすと、bullet1だけ動く
 	for i := 0; i < 28; i++ {
-		gameState.update(updatedItemsCh)
+		gameState.update(itemsUpdatedCh)
 	}
 	assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
 	assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[bulletID2].Position())
-	// bullet1が更新されたことがupdatedItemsChに通知される
-	updatedItems := <-updatedItemsCh
-	assert.Equal(t, 1, len(updatedItems))
-	assert.Equal(t, ItemTypeBullet, updatedItems[0].Type())
-	assert.Equal(t, &Position{X: 2, Y: 8}, updatedItems[0].Position())
+	// bullet1が更新されたので更新件数が1件になる
+	assert.Len(t, itemsUpdatedCh, 1)
 
 	// さらに2回動かすと、bullet2が動く
-	gameState.update(updatedItemsCh)
-	gameState.update(updatedItemsCh)
+	gameState.update(itemsUpdatedCh)
+	gameState.update(itemsUpdatedCh)
 	assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
 	assert.Equal(t, &Position{X: 1, Y: 1}, gameState.Items[bulletID2].Position())
-	// bullet2が更新されたことがupdatedItemsChに通知される
-	updatedItems = <-updatedItemsCh
-	assert.Equal(t, 1, len(updatedItems))
-	assert.Equal(t, ItemTypeBullet, updatedItems[0].Type())
-	assert.Equal(t, &Position{X: 1, Y: 1}, updatedItems[0].Position())
+	// bullet2が更新されたので更新件数が2件になる
+	assert.Len(t, itemsUpdatedCh, 2)
 }
 
 func Test_Bullet(t *testing.T) {
