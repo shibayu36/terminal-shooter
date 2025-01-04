@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -47,6 +49,40 @@ func Test_GameState(t *testing.T) {
 		assert.Equal(t, 2, len(gameState.Items))
 		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID2].Type())
 		assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[itemID2].Position())
+	})
+}
+
+func Test_GameState_StartUpdateLoop(t *testing.T) {
+	t.Run("updateが定期的に実行される", func(t *testing.T) {
+		gameState := NewGameState()
+
+		bulletID := gameState.AddBullet(&Position{X: 0, Y: 0}, DirectionRight)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		gameState.StartUpdateLoop(ctx)
+
+		time.Sleep(560 * time.Millisecond) // 約33回のtickが発生する時間
+
+		pos := gameState.Items[bulletID].Position()
+		assert.True(t, pos.X > 0, "弾が移動していること")
+	})
+
+	t.Run("contextのキャンセルでループが終了する", func(t *testing.T) {
+		gameState := NewGameState()
+		ctx, cancel := context.WithCancel(context.Background())
+
+		bulletID := gameState.AddBullet(&Position{X: 0, Y: 0}, DirectionRight)
+
+		gameState.StartUpdateLoop(ctx)
+
+		// キャンセル実行
+		cancel()
+
+		time.Sleep(560 * time.Millisecond) // 約33回のtickが発生する時間
+
+		assert.Equal(t, 0, gameState.Items[bulletID].Position().X)
 	})
 }
 

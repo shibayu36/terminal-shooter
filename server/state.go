@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/google/uuid"
@@ -29,6 +31,23 @@ func NewGameState() *GameState {
 		Players: make(map[PlayerID]*PlayerState),
 		Items:   make(map[ItemID]Item),
 	}
+}
+
+// ゲーム状態を更新するループを開始する
+func (gs *GameState) StartUpdateLoop(ctx context.Context) {
+	ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
+
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				gs.update()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 }
 
 // ゲーム状態を更新する
