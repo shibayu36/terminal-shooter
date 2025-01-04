@@ -24,6 +24,15 @@ message ItemState {
   string item_id = 1;
   ItemType type = 2;
   Position position = 3;
+
+  // statusはserverからのみ送信する
+  ItemStatus status = 4;
+}
+
+// アイテムのステータス
+enum ItemStatus {
+  ACTIVE = 0;
+  REMOVED = 1;
 }
 
 // 向き
