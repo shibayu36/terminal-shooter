@@ -28,7 +28,7 @@ func main() {
 	}()
 
 	itemsUpdatedCh := gameState.StartUpdateLoop(ctx)
-	go hook.StartPublishLoop(ctx, itemsUpdatedCh)
+	hook.StartPublishLoop(ctx, itemsUpdatedCh)
 
 	// サーバーが中断されるまで実行
 	<-ctx.Done()

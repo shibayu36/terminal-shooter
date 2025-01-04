@@ -130,55 +130,61 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 
 // StartPublishLoop ゲームの状態を定期的にpublishするループを開始する
 func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan struct{}) {
-	for {
-		select {
-		case <-itemsUpdatedCh:
-			// Activeなアイテムを送信する
-			for _, item := range c.game.GetItems() {
-				itemState := &shared.ItemState{
-					ItemId: string(item.ID()),
-					Type:   shared.ItemType_BULLET,
-					Position: &shared.Position{
-						X: int32(item.Position().X),
-						Y: int32(item.Position().Y),
-					},
-					Status: shared.ItemStatus_ACTIVE,
-				}
-
-				payload, err := proto.Marshal(itemState)
-				if err != nil {
-					slog.Error("failed to marshal item state", "error", err)
-					continue
-				}
-				err = c.broker.Broadcast("item_state", payload)
-				if err != nil {
-					slog.Error("failed to broadcast item state", "error", err)
-				}
+	go func() {
+		for {
+			select {
+			case <-itemsUpdatedCh:
+				c.publishItemStates()
+			case <-ctx.Done():
+				return
 			}
-
-			// 削除されたアイテムを送信する
-			for _, removedItem := range c.game.GetRemovedItems() {
-				itemState := &shared.ItemState{
-					ItemId: string(removedItem.ID()),
-					Status: shared.ItemStatus_REMOVED,
-				}
-
-				payload, err := proto.Marshal(itemState)
-				if err != nil {
-					slog.Error("failed to marshal item state", "error", err)
-					continue
-				}
-				err = c.broker.Broadcast("item_state", payload)
-				if err != nil {
-					slog.Error("failed to broadcast item state", "error", err)
-					continue
-				}
-
-				// Broadcastが成功したら削除アイテムは不要になる
-				c.game.ClearRemovedItem(removedItem.ID())
-			}
-		case <-ctx.Done():
-			return
 		}
+	}()
+}
+
+func (c *Controller) publishItemStates() {
+	// Activeなアイテムを送信する
+	for _, item := range c.game.GetItems() {
+		itemState := &shared.ItemState{
+			ItemId: string(item.ID()),
+			Type:   shared.ItemType_BULLET,
+			Position: &shared.Position{
+				X: int32(item.Position().X),
+				Y: int32(item.Position().Y),
+			},
+			Status: shared.ItemStatus_ACTIVE,
+		}
+
+		payload, err := proto.Marshal(itemState)
+		if err != nil {
+			slog.Error("failed to marshal item state", "error", err)
+			continue
+		}
+		err = c.broker.Broadcast("item_state", payload)
+		if err != nil {
+			slog.Error("failed to broadcast item state", "error", err)
+		}
+	}
+
+	// 削除されたアイテムを送信する
+	for _, removedItem := range c.game.GetRemovedItems() {
+		itemState := &shared.ItemState{
+			ItemId: string(removedItem.ID()),
+			Status: shared.ItemStatus_REMOVED,
+		}
+
+		payload, err := proto.Marshal(itemState)
+		if err != nil {
+			slog.Error("failed to marshal item state", "error", err)
+			continue
+		}
+		err = c.broker.Broadcast("item_state", payload)
+		if err != nil {
+			slog.Error("failed to broadcast item state", "error", err)
+			continue
+		}
+
+		// Broadcastが成功したら削除アイテムは不要になる
+		c.game.ClearRemovedItem(removedItem.ID())
 	}
 }
