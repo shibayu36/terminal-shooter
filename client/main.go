@@ -20,14 +20,14 @@ type Position struct {
 
 type Player struct {
 	ID        string
-	Position  *Position
+	Position  Position
 	Direction shared.Direction
 }
 
 type Item struct {
 	ID       string
 	Type     shared.ItemType
-	Position *Position
+	Position Position
 }
 
 type Game struct {
@@ -36,8 +36,8 @@ type Game struct {
 	screen tcell.Screen
 
 	myPlayerID string
-	players    map[string]*Player
-	items      map[string]*Item
+	players    map[string]Player
+	items      map[string]Item
 	width      int
 	height     int
 }
@@ -69,15 +69,15 @@ func NewGame() (*Game, error) {
 		screen:     screen,
 		width:      30,
 		height:     30,
-		players:    make(map[string]*Player),
-		items:      make(map[string]*Item),
+		players:    make(map[string]Player),
+		items:      make(map[string]Item),
 	}
 
 	// プレイヤーをwidthとheightの範囲内でランダムに配置
-	game.players[clientID] = &Player{
+	game.players[clientID] = Player{
 		ID: clientID,
 		//nolint:gosec
-		Position:  &Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
+		Position:  Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
 		Direction: shared.Direction_UP,
 	}
 
@@ -172,6 +172,8 @@ func (g *Game) movePlayer(direction shared.Direction) {
 	}
 	myPlayer.Direction = direction
 
+	g.players[g.myPlayerID] = myPlayer
+
 	// 位置か方向が変更されたら自分の状態をサーバーに送る
 	if oldX != myPlayer.Position.X || oldY != myPlayer.Position.Y || oldDirection != direction {
 		g.publishMyState()
@@ -263,7 +265,7 @@ func (g *Game) draw() {
 	g.screen.Show()
 }
 
-func (g *Game) getMyPlayer() *Player {
+func (g *Game) getMyPlayer() Player {
 	return g.players[g.myPlayerID]
 }
 
@@ -282,9 +284,9 @@ func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
 			return
 		}
 
-		g.players[playerState.GetPlayerId()] = &Player{
+		g.players[playerState.GetPlayerId()] = Player{
 			ID: playerState.GetPlayerId(),
-			Position: &Position{
+			Position: Position{
 				X: int(playerState.GetPosition().GetX()),
 				Y: int(playerState.GetPosition().GetY()),
 			},
@@ -303,10 +305,10 @@ func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
 			return
 		}
 
-		g.items[itemState.GetItemId()] = &Item{
+		g.items[itemState.GetItemId()] = Item{
 			ID:   itemState.GetItemId(),
 			Type: itemState.GetType(),
-			Position: &Position{
+			Position: Position{
 				X: int(itemState.GetPosition().GetX()),
 				Y: int(itemState.GetPosition().GetY()),
 			},
