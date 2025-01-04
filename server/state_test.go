@@ -203,9 +203,7 @@ func Test_GameState_ItemsOperation(t *testing.T) {
 	}, removedItems)
 
 	// ClearRemovedItemsでbullet1のみ削除する
-	gameState.ClearRemovedItems(map[ItemID]Item{
-		bulletID1: bullet1,
-	})
+	gameState.ClearRemovedItem(bulletID1)
 
 	// RemovedItemsにはbullet1のみ残っている
 	removedItems = gameState.GetRemovedItems()

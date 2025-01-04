@@ -139,12 +139,10 @@ func (gs *GameState) GetRemovedItems() map[ItemID]Item {
 }
 
 // 削除されたアイテムをクリアする
-func (gs *GameState) ClearRemovedItems(removedItems map[ItemID]Item) {
+func (gs *GameState) ClearRemovedItem(itemID ItemID) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
-	for _, item := range removedItems {
-		delete(gs.RemovedItems, item.ID())
-	}
+	delete(gs.RemovedItems, itemID)
 }
 
 // アイテムを削除する
