@@ -81,7 +81,10 @@ func (c *Controller) OnDisconnected(client Client) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal player state")
 	}
-	c.broker.Broadcast("player_state", payload)
+	err = c.broker.Broadcast("player_state", payload)
+	if err != nil {
+		return errors.Wrap(err, "failed to broadcast player state")
+	}
 
 	return nil
 }
@@ -115,7 +118,10 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal player state")
 	}
-	c.broker.Broadcast("player_state", payload)
+	err = c.broker.Broadcast("player_state", payload)
+	if err != nil {
+		return errors.Wrap(err, "failed to broadcast player state")
+	}
 
 	slog.Info("all players", "players", c.game.String())
 
@@ -127,6 +133,7 @@ func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan
 	for {
 		select {
 		case <-itemsUpdatedCh:
+			// Activeなアイテムを送信する
 			for _, item := range c.game.GetItems() {
 				itemState := &shared.ItemState{
 					ItemId: string(item.ID()),
@@ -135,6 +142,7 @@ func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan
 						X: int32(item.Position().X),
 						Y: int32(item.Position().Y),
 					},
+					Status: shared.ItemStatus_ACTIVE,
 				}
 
 				payload, err := proto.Marshal(itemState)
@@ -142,7 +150,32 @@ func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan
 					slog.Error("failed to marshal item state", "error", err)
 					continue
 				}
-				c.broker.Broadcast("item_state", payload)
+				err = c.broker.Broadcast("item_state", payload)
+				if err != nil {
+					slog.Error("failed to broadcast item state", "error", err)
+				}
+			}
+
+			// 削除されたアイテムを送信する
+			for _, removedItem := range c.game.GetRemovedItems() {
+				itemState := &shared.ItemState{
+					ItemId: string(removedItem.ID()),
+					Status: shared.ItemStatus_REMOVED,
+				}
+
+				payload, err := proto.Marshal(itemState)
+				if err != nil {
+					slog.Error("failed to marshal item state", "error", err)
+					continue
+				}
+				err = c.broker.Broadcast("item_state", payload)
+				if err != nil {
+					slog.Error("failed to broadcast item state", "error", err)
+					continue
+				}
+
+				// Broadcastが成功したら削除アイテムは不要になる
+				c.game.ClearRemovedItem(removedItem.ID())
 			}
 		case <-ctx.Done():
 			return

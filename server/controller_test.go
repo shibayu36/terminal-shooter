@@ -200,35 +200,76 @@ func TestController_OnDisconnected(t *testing.T) {
 }
 
 func TestController_StartPublishLoop(t *testing.T) {
-	broker := NewBroker()
-	state := NewGameState(30, 30)
-	controller := NewController(broker, state)
+	t.Run("アクティブなアイテムの情報を送れる", func(t *testing.T) {
+		broker := NewBroker()
+		state := NewGameState(30, 30)
+		controller := NewController(broker, state)
 
-	cl1 := &mockClient{id: "id1"}
-	err := controller.OnConnected(cl1, nil)
-	require.NoError(t, err)
+		cl1 := &mockClient{id: "id1"}
+		err := controller.OnConnected(cl1, nil)
+		require.NoError(t, err)
 
-	cl2 := &mockClient{id: "id2"}
-	err = controller.OnConnected(cl2, nil)
-	require.NoError(t, err)
+		cl2 := &mockClient{id: "id2"}
+		err = controller.OnConnected(cl2, nil)
+		require.NoError(t, err)
 
-	itemsUpdatedCh := make(chan struct{}, 10)
-	go controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
+		itemsUpdatedCh := make(chan struct{}, 10)
+		go controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
 
-	bulletID1 := state.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
-	bulletID2 := state.AddBullet(&Position{X: 2, Y: 3}, DirectionUp)
+		bulletID1 := state.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
+		bulletID2 := state.AddBullet(&Position{X: 2, Y: 3}, DirectionUp)
 
-	itemsUpdatedCh <- struct{}{}
+		itemsUpdatedCh <- struct{}{}
 
-	// TODO: 待つための良い手法があれば変更
-	time.Sleep(10 * time.Millisecond)
+		// TODO: 待つための良い手法があれば変更
+		time.Sleep(10 * time.Millisecond)
 
-	// アイテムの状態が全てのクライアントに送信されている
-	for _, cl := range []*mockClient{cl1, cl2} {
-		require.Len(t, cl.published, 2)
-		assert.Equal(t, "item_state", cl.published[0].TopicName)
-		assert.Equal(t, "item_state", cl.published[1].TopicName)
+		// アイテムの状態が全てのクライアントに送信されている
+		for _, cl := range []*mockClient{cl1, cl2} {
+			require.Len(t, cl.published, 2)
+			assert.Equal(t, "item_state", cl.published[0].TopicName)
+			assert.Equal(t, "item_state", cl.published[1].TopicName)
 
+			idToState := map[ItemID]*shared.ItemState{}
+			for _, published := range cl.published {
+				publishedState := &shared.ItemState{}
+				err := proto.Unmarshal(published.Payload, publishedState)
+				require.NoError(t, err)
+				idToState[ItemID(publishedState.GetItemId())] = publishedState
+			}
+
+			assert.EqualValues(t, 1, idToState[bulletID1].GetPosition().GetX())
+			assert.EqualValues(t, 2, idToState[bulletID1].GetPosition().GetY())
+			assert.Equal(t, shared.ItemType_BULLET, idToState[bulletID1].GetType())
+
+			assert.EqualValues(t, 2, idToState[bulletID2].GetPosition().GetX())
+			assert.EqualValues(t, 3, idToState[bulletID2].GetPosition().GetY())
+			assert.Equal(t, shared.ItemType_BULLET, idToState[bulletID2].GetType())
+		}
+	})
+
+	t.Run("アクティブなアイテムと削除済みアイテムを同時に送れる", func(t *testing.T) {
+		broker := NewBroker()
+		state := NewGameState(30, 30)
+		controller := NewController(broker, state)
+
+		cl := &mockClient{id: "id1"}
+		err := controller.OnConnected(cl, nil)
+		require.NoError(t, err)
+
+		bulletID1 := state.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
+		bulletID2 := state.AddBullet(&Position{X: 2, Y: 3}, DirectionUp)
+		state.removeItem(bulletID1)
+
+		itemsUpdatedCh := make(chan struct{}, 10)
+		go controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
+
+		itemsUpdatedCh <- struct{}{}
+
+		// TODO: 待つための良い手法があれば変更
+		time.Sleep(10 * time.Millisecond)
+
+		// アクティブなアイテムと削除済みアイテムが同時に送信されている
 		idToState := map[ItemID]*shared.ItemState{}
 		for _, published := range cl.published {
 			publishedState := &shared.ItemState{}
@@ -237,12 +278,14 @@ func TestController_StartPublishLoop(t *testing.T) {
 			idToState[ItemID(publishedState.GetItemId())] = publishedState
 		}
 
-		assert.EqualValues(t, 1, idToState[bulletID1].GetPosition().GetX())
-		assert.EqualValues(t, 2, idToState[bulletID1].GetPosition().GetY())
-		assert.Equal(t, shared.ItemType_BULLET, idToState[bulletID1].GetType())
+		assert.Equal(t, shared.ItemStatus_REMOVED, idToState[bulletID1].GetStatus())
 
+		assert.Equal(t, shared.ItemStatus_ACTIVE, idToState[bulletID2].GetStatus())
 		assert.EqualValues(t, 2, idToState[bulletID2].GetPosition().GetX())
 		assert.EqualValues(t, 3, idToState[bulletID2].GetPosition().GetY())
 		assert.Equal(t, shared.ItemType_BULLET, idToState[bulletID2].GetType())
-	}
+
+		// 削除送信が成功したので、stateから削除済みアイテムがクリアされている
+		assert.NotContains(t, state.GetRemovedItems(), bulletID1)
+	})
 }

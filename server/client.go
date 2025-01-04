@@ -33,7 +33,7 @@ func (c *client) Publish(publishPacket *packets.PublishPacket) error {
 
 	err := publishPacket.Write(c.conn)
 	if err != nil {
-		return errors.Wrap(err, "failed to write publish packet")
+		return errors.Wrapf(err, "failed to write publish packet to client: %s", c.id)
 	}
 
 	return nil
