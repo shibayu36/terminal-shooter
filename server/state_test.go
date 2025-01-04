@@ -109,7 +109,7 @@ func Test_GameState_update(t *testing.T) {
 	gameState.update()
 	gameState.update()
 	assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
-	assert.Equal(t, &Position{X: 1, Y: 3}, gameState.Items[bulletID2].Position())
+	assert.Equal(t, &Position{X: 1, Y: 1}, gameState.Items[bulletID2].Position())
 }
 
 func Test_Bullet(t *testing.T) {

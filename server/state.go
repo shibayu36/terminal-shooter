@@ -199,9 +199,9 @@ func (b *Bullet) Update() bool {
 		b.tick = 0
 		switch b.direction {
 		case DirectionUp:
-			b.position.Y++
-		case DirectionDown:
 			b.position.Y--
+		case DirectionDown:
+			b.position.Y++
 		case DirectionLeft:
 			b.position.X--
 		case DirectionRight:
