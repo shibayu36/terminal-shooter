@@ -29,6 +29,7 @@ linters-settings:
   exhaustruct:
     exclude:
       - '.+/shared\.PlayerState$'
+      - '.+/shared\.ItemState$'
   varnamelen:
     ignore-names:
       - dx
