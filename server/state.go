@@ -71,9 +71,22 @@ func (gs *GameState) update(updatedItemsCh chan<- struct{}) {
 			updatedItems = append(updatedItems, item)
 		}
 	}
+	for _, updatedItem := range updatedItems {
+		// 盤面外に出たアイテムを削除する
+		if !gs.isWithinBounds(updatedItem) {
+			gs.removeItem(updatedItem.ID())
+		}
+	}
+
 	if len(updatedItems) > 0 {
 		updatedItemsCh <- struct{}{}
 	}
+}
+
+// アイテムが盤面内にあるかどうかを判定する
+func (gs *GameState) isWithinBounds(item Item) bool {
+	pos := item.Position()
+	return pos.X >= 0 && pos.X < gs.Width && pos.Y >= 0 && pos.Y < gs.Height
 }
 
 // プレイヤーを追加する

@@ -87,34 +87,82 @@ func Test_GameState_StartUpdateLoop(t *testing.T) {
 }
 
 func Test_GameState_update(t *testing.T) {
-	itemsUpdatedCh := make(chan struct{}, 10)
-	gameState := NewGameState(30, 30)
+	t.Run("弾が動く", func(t *testing.T) {
+		itemsUpdatedCh := make(chan struct{}, 10)
+		gameState := NewGameState(30, 30)
 
-	// 弾を追加
-	bulletID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionLeft)
-	// 2回動かす
-	gameState.update(itemsUpdatedCh)
-	gameState.update(itemsUpdatedCh)
-
-	// 弾をもう一つ追加
-	bulletID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionUp)
-
-	// 28回動かすと、bullet1だけ動く
-	for i := 0; i < 28; i++ {
+		// 弾を追加
+		bulletID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionLeft)
+		// 2回動かす
 		gameState.update(itemsUpdatedCh)
-	}
-	assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
-	assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[bulletID2].Position())
-	// bullet1が更新されたので更新件数が1件になる
-	assert.Len(t, itemsUpdatedCh, 1)
+		gameState.update(itemsUpdatedCh)
 
-	// さらに2回動かすと、bullet2が動く
-	gameState.update(itemsUpdatedCh)
-	gameState.update(itemsUpdatedCh)
-	assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
-	assert.Equal(t, &Position{X: 1, Y: 1}, gameState.Items[bulletID2].Position())
-	// bullet2が更新されたので更新件数が2件になる
-	assert.Len(t, itemsUpdatedCh, 2)
+		// 弾をもう一つ追加
+		bulletID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionUp)
+
+		// 28回動かすと、bullet1だけ動く
+		for i := 0; i < 28; i++ {
+			gameState.update(itemsUpdatedCh)
+		}
+		assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
+		assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[bulletID2].Position())
+		// bullet1が更新されたので更新件数が1件になる
+		assert.Len(t, itemsUpdatedCh, 1)
+
+		// さらに2回動かすと、bullet2が動く
+		gameState.update(itemsUpdatedCh)
+		gameState.update(itemsUpdatedCh)
+		assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
+		assert.Equal(t, &Position{X: 1, Y: 1}, gameState.Items[bulletID2].Position())
+		// bullet2が更新されたので更新件数が2件になる
+		assert.Len(t, itemsUpdatedCh, 2)
+	})
+
+	t.Run("アイテムが盤面外に出たら削除される", func(t *testing.T) {
+		itemsUpdatedCh := make(chan struct{}, 10)
+		gameState := NewGameState(30, 30)
+
+		bulletID := gameState.AddBullet(&Position{X: 1, Y: 0}, DirectionLeft)
+
+		// 30回更新したタイミングではまだ盤面上
+		for i := 0; i < 30; i++ {
+			gameState.update(itemsUpdatedCh)
+		}
+		assert.Len(t, gameState.GetItems(), 1)
+		assert.Equal(t, &Position{X: 0, Y: 0}, gameState.GetItems()[bulletID].Position())
+
+		// さらに30回更新したら盤面外に出るので削除される
+		for i := 0; i < 30; i++ {
+			gameState.update(itemsUpdatedCh)
+		}
+		assert.Len(t, gameState.GetItems(), 0)
+		assert.Len(t, gameState.GetRemovedItems(), 1)
+		assert.NotEmpty(t, gameState.GetRemovedItems()[bulletID])
+	})
+}
+
+func Test_GameState_isWithinBounds(t *testing.T) {
+	testCases := []struct {
+		name     string
+		pos      *Position
+		expected bool
+	}{
+		{name: "盤面内にある", pos: &Position{X: 15, Y: 15}, expected: true},
+		{name: "盤面内にある", pos: &Position{X: 0, Y: 0}, expected: true},
+		{name: "盤面内にある", pos: &Position{X: 29, Y: 29}, expected: true},
+		{name: "X < 0で盤面外にある", pos: &Position{X: -1, Y: 15}, expected: false},
+		{name: "X >= 30で盤面外にある", pos: &Position{X: 30, Y: 15}, expected: false},
+		{name: "Y < 0で盤面外にある", pos: &Position{X: 15, Y: -1}, expected: false},
+		{name: "Y >= 30で盤面外にある", pos: &Position{X: 15, Y: 30}, expected: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			gameState := NewGameState(30, 30)
+			bullet := NewBullet("bullet1", tc.pos, DirectionUp)
+			assert.Equal(t, tc.expected, gameState.isWithinBounds(bullet))
+		})
+	}
 }
 
 func Test_GameState_ItemsOperation(t *testing.T) {
