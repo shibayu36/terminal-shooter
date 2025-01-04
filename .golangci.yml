@@ -10,6 +10,7 @@ linters:
     - paralleltest
     - perfsprint # パフォーマンスチューニングはここまで求められていない
     - exportloopref # deprecated
+    - godox
 
 linters-settings:
   cyclop:
@@ -28,6 +29,7 @@ linters-settings:
   exhaustruct:
     exclude:
       - '.+/shared\.PlayerState$'
+      - '.+/shared\.ItemState$'
   varnamelen:
     ignore-names:
       - dx
@@ -54,6 +56,7 @@ issues:
         - gocyclo
         - gosec
         - exhaustruct
+        - funlen
     # Exclude protobuf generated files from linting
     - path: shared/proto/*.pb.go
       linters:

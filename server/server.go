@@ -29,6 +29,8 @@ type Server struct {
 	activeConn map[net.Conn]struct{}
 	inShutdown atomic.Bool    `exhaustruct:"optional"`
 	wg         sync.WaitGroup `exhaustruct:"optional"`
+
+	mu sync.Mutex `exhaustruct:"optional"`
 }
 
 func NewServer(address string, hook Hooker) (*Server, error) {
@@ -71,10 +73,12 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 		return errors.Wrap(err, "error closing listener")
 	}
 
+	s.mu.Lock()
 	for conn := range s.activeConn {
 		slog.Info("Closing connection", "address", conn.RemoteAddr())
 		conn.Close()
 	}
+	s.mu.Unlock()
 
 	// タイムアウト付きでgoroutineの終了を待つ
 	done := make(chan struct{})
@@ -94,7 +98,9 @@ func (s *Server) Shutdown(timeout time.Duration) error {
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
+	s.mu.Lock()
 	s.activeConn[conn] = struct{}{}
+	s.mu.Unlock()
 
 	client := &client{
 		conn: conn,
@@ -106,7 +112,11 @@ func (s *Server) handleConnection(conn net.Conn) {
 			slog.Error("Error on disconnected", "error", fmt.Sprintf("%+v", err))
 		}
 		conn.Close()
+
+		s.mu.Lock()
 		delete(s.activeConn, conn)
+		s.mu.Unlock()
+
 		s.wg.Done()
 	}()
 

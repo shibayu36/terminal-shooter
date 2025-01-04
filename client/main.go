@@ -20,8 +20,14 @@ type Position struct {
 
 type Player struct {
 	ID        string
-	Position  *Position
+	Position  Position
 	Direction shared.Direction
+}
+
+type Item struct {
+	ID       string
+	Type     shared.ItemType
+	Position Position
 }
 
 type Game struct {
@@ -30,87 +36,10 @@ type Game struct {
 	screen tcell.Screen
 
 	myPlayerID string
-	players    map[string]*Player
+	players    map[string]Player
+	items      map[string]Item
 	width      int
 	height     int
-}
-
-func NewGame() (*Game, error) {
-	screen, err := tcell.NewScreen()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create new screen")
-	}
-
-	if err := screen.Init(); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize screen")
-	}
-
-	// MQTTクライアントの設定
-	clientID := uuid.New().String()
-	opts := mqtt.NewClientOptions().
-		AddBroker("tcp://localhost:1883").
-		SetClientID(clientID)
-
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		return nil, errors.Wrap(token.Error(), "failed to connect MQTT broker")
-	}
-
-	game := &Game{
-		mqtt:       client,
-		myPlayerID: clientID,
-		screen:     screen,
-		width:      30,
-		height:     30,
-		players:    make(map[string]*Player),
-	}
-
-	// プレイヤーをwidthとheightの範囲内でランダムに配置
-	game.players[clientID] = &Player{
-		ID: clientID,
-		//nolint:gosec
-		Position:  &Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
-		Direction: shared.Direction_UP,
-	}
-
-	// 全てのtopicをsubscribeする
-	token := game.mqtt.Subscribe("#", 0, game.handleMessage)
-	if token.Wait() && token.Error() != nil {
-		return nil, errors.Wrap(token.Error(), "failed to subscribe to topics")
-	}
-
-	// 自分の初期位置を送信
-	game.publishMyState()
-	return game, nil
-}
-
-func (g *Game) Run() {
-	// 終了時に接続や画面をクリア
-	defer func() {
-		g.screen.Fini()
-		g.mqtt.Disconnect(250)
-	}()
-
-	// イベントチャンネル
-	eventChan := make(chan tcell.Event)
-	go func() {
-		for {
-			eventChan <- g.screen.PollEvent()
-		}
-	}()
-
-	// メインループ
-	ticker := time.NewTicker(50 * time.Millisecond)
-	for {
-		select {
-		case event := <-eventChan:
-			if g.handleEvent(event) {
-				return
-			}
-		case <-ticker.C:
-			g.draw()
-		}
-	}
 }
 
 func (g *Game) publishMyState() {
@@ -163,6 +92,8 @@ func (g *Game) movePlayer(direction shared.Direction) {
 		myPlayer.Position.Y = newY
 	}
 	myPlayer.Direction = direction
+
+	g.players[g.myPlayerID] = myPlayer
 
 	// 位置か方向が変更されたら自分の状態をサーバーに送る
 	if oldX != myPlayer.Position.X || oldY != myPlayer.Position.Y || oldDirection != direction {
@@ -234,15 +165,34 @@ func (g *Game) draw() {
 		)
 	}
 
+	// アイテムを描画
+	itemStyle := tcell.StyleDefault.Foreground(tcell.ColorYellow)
+	for _, item := range g.items {
+		var r rune
+		//nolint:gocritic
+		switch item.Type {
+		case shared.ItemType_BULLET:
+			r = '*'
+		}
+		g.screen.SetContent(
+			item.Position.X,
+			item.Position.Y,
+			r,
+			nil,
+			itemStyle,
+		)
+	}
+
 	g.screen.Show()
 }
 
-func (g *Game) getMyPlayer() *Player {
+func (g *Game) getMyPlayer() Player {
 	return g.players[g.myPlayerID]
 }
 
-func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
-	if message.Topic() == "player_state" {
+func (g *Game) handleMessage(message mqtt.Message) {
+	switch message.Topic() {
+	case "player_state":
 		playerState := &shared.PlayerState{}
 		err := proto.Unmarshal(message.Payload(), playerState)
 		if err != nil {
@@ -255,22 +205,119 @@ func (g *Game) handleMessage(client mqtt.Client, message mqtt.Message) {
 			return
 		}
 
-		g.players[playerState.GetPlayerId()] = &Player{
+		g.players[playerState.GetPlayerId()] = Player{
 			ID: playerState.GetPlayerId(),
-			Position: &Position{
+			Position: Position{
 				X: int(playerState.GetPosition().GetX()),
 				Y: int(playerState.GetPosition().GetY()),
 			},
 			Direction: playerState.GetDirection(),
 		}
+	case "item_state":
+		itemState := &shared.ItemState{}
+		err := proto.Unmarshal(message.Payload(), itemState)
+		if err != nil {
+			log.Printf("Failed to unmarshal item state: %v", err)
+			return
+		}
+
+		if itemState.GetStatus() == shared.ItemStatus_REMOVED {
+			delete(g.items, itemState.GetItemId())
+			return
+		}
+
+		g.items[itemState.GetItemId()] = Item{
+			ID:   itemState.GetItemId(),
+			Type: itemState.GetType(),
+			Position: Position{
+				X: int(itemState.GetPosition().GetX()),
+				Y: int(itemState.GetPosition().GetY()),
+			},
+		}
+	}
+}
+
+//nolint:funlen
+func Run() error {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return errors.Wrap(err, "failed to create new screen")
+	}
+	defer screen.Fini()
+
+	if err := screen.Init(); err != nil {
+		return errors.Wrap(err, "failed to initialize screen")
+	}
+
+	// MQTTクライアントの設定
+	clientID := uuid.New().String()
+	opts := mqtt.NewClientOptions().
+		AddBroker("tcp://localhost:1883").
+		SetClientID(clientID)
+
+	client := mqtt.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		return errors.Wrap(token.Error(), "failed to connect MQTT broker")
+	}
+	defer client.Disconnect(250)
+
+	game := &Game{
+		mqtt:       client,
+		myPlayerID: clientID,
+		screen:     screen,
+		width:      30,
+		height:     30,
+		players:    make(map[string]Player),
+		items:      make(map[string]Item),
+	}
+
+	// プレイヤーをwidthとheightの範囲内でランダムに配置
+	game.players[clientID] = Player{
+		ID: clientID,
+		//nolint:gosec
+		Position:  Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
+		Direction: shared.Direction_UP,
+	}
+
+	// screenからのイベントを受け取る
+	eventChan := make(chan tcell.Event)
+	go func() {
+		for {
+			eventChan <- screen.PollEvent()
+		}
+	}()
+
+	// MQTTのメッセージを受け取る
+	messageChan := make(chan mqtt.Message)
+	handleMessage := func(client mqtt.Client, message mqtt.Message) {
+		messageChan <- message
+	}
+	token := game.mqtt.Subscribe("#", 0, handleMessage)
+	if token.Wait() && token.Error() != nil {
+		return errors.Wrap(token.Error(), "failed to subscribe to topics")
+	}
+
+	// 自分の初期位置を送信
+	game.publishMyState()
+
+	// メインループ
+	ticker := time.NewTicker(50 * time.Millisecond)
+	for {
+		select {
+		case event := <-eventChan:
+			if game.handleEvent(event) {
+				return nil
+			}
+		case message := <-messageChan:
+			game.handleMessage(message)
+		case <-ticker.C:
+			game.draw()
+		}
 	}
 }
 
 func main() {
-	game, err := NewGame()
-	if err != nil {
+	if err := Run(); err != nil {
 		log.Fatal(err)
 	}
-
-	game.Run()
 }
