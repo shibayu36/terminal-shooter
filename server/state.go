@@ -123,21 +123,21 @@ func (gs *GameState) MovePlayer(playerID PlayerID, position Position, direction 
 func (gs *GameState) GetPlayers() map[PlayerID]*PlayerState {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
-	return copyMap(gs.Players)
+	return shared.CopyMap(gs.Players)
 }
 
 // アイテム一覧を取得する
 func (gs *GameState) GetItems() map[ItemID]Item {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
-	return copyMap(gs.Items)
+	return shared.CopyMap(gs.Items)
 }
 
 // 削除されたアイテム一覧を取得する
 func (gs *GameState) GetRemovedItems() map[ItemID]Item {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
-	return copyMap(gs.RemovedItems)
+	return shared.CopyMap(gs.RemovedItems)
 }
 
 // 削除されたアイテムをクリアする
