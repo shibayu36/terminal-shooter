@@ -2,14 +2,22 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"math/rand"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 )
 
 func main() {
+	if err := run(); err != nil {
+		slog.Error("failed to run", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
@@ -19,12 +27,12 @@ func main() {
 	hook := NewController(broker, gameState)
 	server, err := NewServer(":1883", hook)
 	if err != nil {
-		log.Fatalf("%+v", err)
+		return err
 	}
 
 	go func() {
 		if err := server.Serve(); err != nil {
-			log.Fatalf("%+v", err)
+			panic(err)
 		}
 	}()
 
@@ -45,6 +53,8 @@ func main() {
 	<-ctx.Done()
 
 	if err := server.Shutdown(10 * time.Second); err != nil {
-		log.Fatalf("%+v", err)
+		return err
 	}
+
+	return nil
 }
