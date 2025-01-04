@@ -138,24 +138,22 @@ func (g *Game) publishMyState() {
 	}
 }
 
-func (g *Game) movePlayer(dx, dy int) {
+func (g *Game) movePlayer(direction shared.Direction) {
 	myPlayer := g.getMyPlayer()
 	oldX, oldY := myPlayer.Position.X, myPlayer.Position.Y
 	oldDirection := myPlayer.Direction
 
-	// 移動方向からdirectionを決定
-	var direction shared.Direction
-	switch {
-	case dx < 0:
-		direction = shared.Direction_LEFT
-	case dx > 0:
-		direction = shared.Direction_RIGHT
-	case dy < 0:
-		direction = shared.Direction_UP
-	case dy > 0:
-		direction = shared.Direction_DOWN
-	default:
-		direction = myPlayer.Direction // 移動がない場合は現在の向きを維持
+	// directionから移動量を決定
+	var dx, dy int
+	switch direction {
+	case shared.Direction_LEFT:
+		dx = -1
+	case shared.Direction_RIGHT:
+		dx = 1
+	case shared.Direction_UP:
+		dy = -1
+	case shared.Direction_DOWN:
+		dy = 1
 	}
 
 	if newX := myPlayer.Position.X + dx; newX >= 0 && newX < g.width {
@@ -181,13 +179,13 @@ func (g *Game) handleEvent(event tcell.Event) bool {
 		case tcell.KeyEscape, tcell.KeyCtrlC:
 			return true
 		case tcell.KeyLeft:
-			g.movePlayer(-1, 0)
+			g.movePlayer(shared.Direction_LEFT)
 		case tcell.KeyRight:
-			g.movePlayer(1, 0)
+			g.movePlayer(shared.Direction_RIGHT)
 		case tcell.KeyUp:
-			g.movePlayer(0, -1)
+			g.movePlayer(shared.Direction_UP)
 		case tcell.KeyDown:
-			g.movePlayer(0, 1)
+			g.movePlayer(shared.Direction_DOWN)
 		}
 	}
 	return false
