@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"math/rand"
 	"os/signal"
 	"syscall"
 	"time"
@@ -29,6 +30,16 @@ func main() {
 
 	itemsUpdatedCh := gameState.StartUpdateLoop(ctx)
 	hook.StartPublishLoop(ctx, itemsUpdatedCh)
+
+	ticker := time.NewTicker(1234 * time.Millisecond)
+	defer ticker.Stop()
+	go func() {
+		for range ticker.C {
+			directions := []Direction{DirectionUp, DirectionDown, DirectionLeft, DirectionRight}
+			//nolint:gosec
+			gameState.AddBullet(&Position{X: rand.Intn(30), Y: rand.Intn(30)}, directions[rand.Intn(4)])
+		}
+	}()
 
 	// サーバーが中断されるまで実行
 	<-ctx.Done()
