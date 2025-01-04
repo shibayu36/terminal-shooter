@@ -13,7 +13,9 @@ func main() {
 	defer cancel()
 
 	broker := NewBroker()
-	hook := NewController(broker, NewGameState(30, 30))
+
+	gameState := NewGameState(30, 30)
+	hook := NewController(broker, gameState)
 	server, err := NewServer(":1883", hook)
 	if err != nil {
 		log.Fatalf("%+v", err)
@@ -24,6 +26,9 @@ func main() {
 			log.Fatalf("%+v", err)
 		}
 	}()
+
+	itemsUpdatedCh := gameState.StartUpdateLoop(ctx)
+	go hook.StartPublishLoop(ctx, itemsUpdatedCh)
 
 	// サーバーが中断されるまで実行
 	<-ctx.Done()
