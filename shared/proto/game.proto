@@ -19,6 +19,13 @@ message PlayerState {
   Status status = 3;
 }
 
+// アイテムの状態
+message ItemState {
+  string item_id = 1;
+  ItemType type = 2;
+  Position position = 3;
+}
+
 // 向き
 enum Direction {
   UP = 0;
@@ -31,4 +38,9 @@ enum Direction {
 enum Status {
   ALIVE = 0;
   DISCONNECTED = 1;
+}
+
+// アイテムの種類
+enum ItemType {
+  BULLET = 0;
 }
