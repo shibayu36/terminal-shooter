@@ -41,12 +41,12 @@ func Test_GameState(t *testing.T) {
 		gameState := NewGameState(30, 30)
 
 		itemID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionRight)
-		assert.Equal(t, 1, len(gameState.Items))
+		assert.Len(t, gameState.Items, 1)
 		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID1].Type())
 		assert.Equal(t, &Position{X: 3, Y: 8}, gameState.Items[itemID1].Position())
 
 		itemID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
-		assert.Equal(t, 2, len(gameState.Items))
+		assert.Len(t, gameState.Items, 2)
 		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID2].Type())
 		assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[itemID2].Position())
 	})
@@ -66,7 +66,7 @@ func Test_GameState_StartUpdateLoop(t *testing.T) {
 		time.Sleep(560 * time.Millisecond) // 約33回のtickが発生する時間
 
 		pos := gameState.Items[bulletID].Position()
-		assert.True(t, pos.X > 0, "弾が移動していること")
+		assert.Positive(t, pos.X, "弾が移動していること")
 	})
 
 	t.Run("contextのキャンセルでループが終了する", func(t *testing.T) {
@@ -101,7 +101,7 @@ func Test_GameState_update(t *testing.T) {
 		bulletID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionUp)
 
 		// 28回動かすと、bullet1だけ動く
-		for i := 0; i < 28; i++ {
+		for range 28 {
 			gameState.update(itemsUpdatedCh)
 		}
 		assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
@@ -125,17 +125,17 @@ func Test_GameState_update(t *testing.T) {
 		bulletID := gameState.AddBullet(&Position{X: 1, Y: 0}, DirectionLeft)
 
 		// 30回更新したタイミングではまだ盤面上
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			gameState.update(itemsUpdatedCh)
 		}
 		assert.Len(t, gameState.GetItems(), 1)
 		assert.Equal(t, &Position{X: 0, Y: 0}, gameState.GetItems()[bulletID].Position())
 
 		// さらに30回更新したら盤面外に出るので削除される
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			gameState.update(itemsUpdatedCh)
 		}
-		assert.Len(t, gameState.GetItems(), 0)
+		assert.Empty(t, gameState.GetItems())
 		assert.Len(t, gameState.GetRemovedItems(), 1)
 		assert.NotEmpty(t, gameState.GetRemovedItems()[bulletID])
 	})
