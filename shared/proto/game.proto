@@ -13,9 +13,18 @@ message Position {
 message PlayerState {
   string player_id = 1;
   Position position = 2;
+  Direction direction = 4;
 
   // statusはserverからのみ送信する
   Status status = 3;
+}
+
+// 向き
+enum Direction {
+  UP = 0;
+  DOWN = 1;
+  LEFT = 2;
+  RIGHT = 3;
 }
 
 // プレイヤーのステータス

@@ -9,6 +9,7 @@ linters:
     - err113 # 多少動的なerrがあってもいい
     - paralleltest
     - perfsprint # パフォーマンスチューニングはここまで求められていない
+    - exportloopref # deprecated
 
 linters-settings:
   cyclop:
@@ -27,6 +28,23 @@ linters-settings:
   exhaustruct:
     exclude:
       - '.+/shared\.PlayerState$'
+  varnamelen:
+    ignore-names:
+      - dx
+      - dy
+    max-distance: 15
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Newf(
+      - errors.Unwrap(
+      - errors.Join(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .WithStack(
 
 issues:
   exclude-rules:
