@@ -140,7 +140,6 @@ func (s *Server) handleConnection(conn net.Conn) {
 }
 
 func (s *Server) handlePacket(client *client, packet packets.ControlPacket) error {
-	//nolint:varnamelen
 	switch p := packet.(type) {
 	case *packets.ConnectPacket:
 		return s.handleConnect(client, p)

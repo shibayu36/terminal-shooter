@@ -96,6 +96,8 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 
 	direction, err := FromSharedDirection(playerState.GetDirection())
 	if err != nil {
+		// 方向が不正な場合は無視する
+		//nolint:nilerr
 		return nil
 	}
 

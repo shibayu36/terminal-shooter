@@ -173,7 +173,7 @@ func (g *Game) movePlayer(dx, dy int) {
 }
 
 func (g *Game) handleEvent(event tcell.Event) bool {
-	//nolint:gocritic,varnamelen // ignore singleCaseSwitch
+	//nolint:gocritic // ignore singleCaseSwitch
 	switch ev := event.(type) {
 	case *tcell.EventKey:
 		//nolint:exhaustive
