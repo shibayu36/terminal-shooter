@@ -107,7 +107,7 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 
 	updatedPlayer := c.game.MovePlayer(
 		playerID,
-		&Position{
+		Position{
 			X: int(playerState.GetPosition().GetX()),
 			Y: int(playerState.GetPosition().GetY()),
 		},

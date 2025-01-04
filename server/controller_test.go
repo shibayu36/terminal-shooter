@@ -46,7 +46,7 @@ func TestController_OnConnected(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, &PlayerState{
 		PlayerID:  PlayerID("id1"),
-		Position:  &Position{X: 0, Y: 0},
+		Position:  Position{X: 0, Y: 0},
 		Direction: DirectionUp,
 	}, state.GetPlayers()[PlayerID("id1")], "cl1が追加された")
 	assert.Equal(t, broker.clients[cl1.id], cl1, "cl1がbrokerに追加された")
@@ -56,7 +56,7 @@ func TestController_OnConnected(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, &PlayerState{
 		PlayerID:  PlayerID("id2"),
-		Position:  &Position{X: 0, Y: 0},
+		Position:  Position{X: 0, Y: 0},
 		Direction: DirectionUp,
 	}, state.GetPlayers()[PlayerID("id2")], "cl2が追加された")
 	assert.Equal(t, broker.clients[cl2.id], cl2, "cl2がbrokerに追加された")
@@ -72,12 +72,12 @@ func TestController_OnSubscribed(t *testing.T) {
 	cl1 := &mockClient{id: "id1"}
 	err := controller.OnConnected(cl1, nil)
 	require.NoError(t, err)
-	state.MovePlayer(PlayerID("id1"), &Position{X: 5, Y: 10}, DirectionRight)
+	state.MovePlayer(PlayerID("id1"), Position{X: 5, Y: 10}, DirectionRight)
 
 	cl2 := &mockClient{id: "id2"}
 	err = controller.OnConnected(cl2, nil)
 	require.NoError(t, err)
-	state.MovePlayer(PlayerID("id2"), &Position{X: 10, Y: 20}, DirectionLeft)
+	state.MovePlayer(PlayerID("id2"), Position{X: 10, Y: 20}, DirectionLeft)
 
 	cl3 := &mockClient{id: "id3"}
 	err = controller.OnConnected(cl3, nil)

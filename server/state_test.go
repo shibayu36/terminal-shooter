@@ -19,7 +19,7 @@ func Test_GameState(t *testing.T) {
 		assert.Equal(t, DirectionUp, gameState.GetPlayers()["player1"].Direction)
 
 		// player1の位置を更新
-		gameState.MovePlayer("player1", &Position{X: 2, Y: 8}, DirectionRight)
+		gameState.MovePlayer("player1", Position{X: 2, Y: 8}, DirectionRight)
 		assert.Equal(t, 2, gameState.GetPlayers()["player1"].Position.X)
 		assert.Equal(t, 8, gameState.GetPlayers()["player1"].Position.Y)
 		assert.Equal(t, DirectionRight, gameState.GetPlayers()["player1"].Direction)

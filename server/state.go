@@ -98,7 +98,7 @@ func (gs *GameState) AddPlayer(playerID PlayerID) {
 	defer gs.mu.Unlock()
 	gs.Players[playerID] = &PlayerState{
 		PlayerID:  playerID,
-		Position:  &Position{X: 0, Y: 0},
+		Position:  Position{X: 0, Y: 0},
 		Direction: DirectionUp,
 	}
 }
@@ -111,7 +111,7 @@ func (gs *GameState) RemovePlayer(playerID PlayerID) {
 }
 
 // プレイヤーの位置を更新する
-func (gs *GameState) MovePlayer(playerID PlayerID, position *Position, direction Direction) *PlayerState {
+func (gs *GameState) MovePlayer(playerID PlayerID, position Position, direction Direction) *PlayerState {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	gs.Players[playerID].Position = position
@@ -184,7 +184,7 @@ func (gs *GameState) String() string {
 // プレイヤーの状態を管理する
 type PlayerState struct {
 	PlayerID  PlayerID
-	Position  *Position
+	Position  Position
 	Direction Direction
 }
 
