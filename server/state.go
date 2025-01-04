@@ -65,8 +65,10 @@ func (gs *GameState) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 
 // ゲーム状態を更新する
 func (gs *GameState) update(updatedItemsCh chan<- struct{}) {
+	items := gs.GetItems()
+
 	updatedItems := []Item{}
-	for _, item := range gs.Items {
+	for _, item := range items {
 		if item.Update() {
 			updatedItems = append(updatedItems, item)
 		}
@@ -121,21 +123,21 @@ func (gs *GameState) MovePlayer(playerID PlayerID, position *Position, direction
 func (gs *GameState) GetPlayers() map[PlayerID]*PlayerState {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
-	return gs.Players
+	return copyMap(gs.Players)
 }
 
 // アイテム一覧を取得する
 func (gs *GameState) GetItems() map[ItemID]Item {
 	gs.mu.RLock()
 	defer gs.mu.RUnlock()
-	return gs.Items
+	return copyMap(gs.Items)
 }
 
 // 削除されたアイテム一覧を取得する
 func (gs *GameState) GetRemovedItems() map[ItemID]Item {
-	gs.mu.Lock()
-	defer gs.mu.Unlock()
-	return gs.RemovedItems
+	gs.mu.RLock()
+	defer gs.mu.RUnlock()
+	return copyMap(gs.RemovedItems)
 }
 
 // 削除されたアイテムをクリアする
@@ -208,13 +210,13 @@ const (
 type Item interface {
 	ID() ItemID
 	Type() ItemType
-	Position() *Position
+	Position() Position
 	Update() (updated bool)
 }
 
 type Bullet struct {
 	id        ItemID
-	position  *Position
+	position  Position
 	direction Direction
 	// 何tickで動くか
 	moveTick int
@@ -230,7 +232,7 @@ var _ Item = (*Bullet)(nil)
 func NewBullet(id ItemID, position *Position, direction Direction) *Bullet {
 	return &Bullet{
 		id:        id,
-		position:  position,
+		position:  *position,
 		direction: direction,
 		moveTick:  30, // 60fpsで0.5秒
 		tick:      0,
@@ -245,7 +247,7 @@ func (b *Bullet) Type() ItemType {
 	return ItemTypeBullet
 }
 
-func (b *Bullet) Position() *Position {
+func (b *Bullet) Position() Position {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.position

@@ -43,12 +43,12 @@ func Test_GameState(t *testing.T) {
 		itemID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionRight)
 		assert.Len(t, gameState.Items, 1)
 		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID1].Type())
-		assert.Equal(t, &Position{X: 3, Y: 8}, gameState.Items[itemID1].Position())
+		assert.Equal(t, Position{X: 3, Y: 8}, gameState.Items[itemID1].Position())
 
 		itemID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
 		assert.Len(t, gameState.Items, 2)
 		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID2].Type())
-		assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[itemID2].Position())
+		assert.Equal(t, Position{X: 1, Y: 2}, gameState.Items[itemID2].Position())
 	})
 }
 
@@ -104,16 +104,16 @@ func Test_GameState_update(t *testing.T) {
 		for range 28 {
 			gameState.update(itemsUpdatedCh)
 		}
-		assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
-		assert.Equal(t, &Position{X: 1, Y: 2}, gameState.Items[bulletID2].Position())
+		assert.Equal(t, Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
+		assert.Equal(t, Position{X: 1, Y: 2}, gameState.Items[bulletID2].Position())
 		// bullet1が更新されたので更新件数が1件になる
 		assert.Len(t, itemsUpdatedCh, 1)
 
 		// さらに2回動かすと、bullet2が動く
 		gameState.update(itemsUpdatedCh)
 		gameState.update(itemsUpdatedCh)
-		assert.Equal(t, &Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
-		assert.Equal(t, &Position{X: 1, Y: 1}, gameState.Items[bulletID2].Position())
+		assert.Equal(t, Position{X: 2, Y: 8}, gameState.Items[bulletID1].Position())
+		assert.Equal(t, Position{X: 1, Y: 1}, gameState.Items[bulletID2].Position())
 		// bullet2が更新されたので更新件数が2件になる
 		assert.Len(t, itemsUpdatedCh, 2)
 	})
@@ -129,7 +129,7 @@ func Test_GameState_update(t *testing.T) {
 			gameState.update(itemsUpdatedCh)
 		}
 		assert.Len(t, gameState.GetItems(), 1)
-		assert.Equal(t, &Position{X: 0, Y: 0}, gameState.GetItems()[bulletID].Position())
+		assert.Equal(t, Position{X: 0, Y: 0}, gameState.GetItems()[bulletID].Position())
 
 		// さらに30回更新したら盤面外に出るので削除される
 		for range 30 {
@@ -218,7 +218,7 @@ func Test_Bullet(t *testing.T) {
 
 	assert.Equal(t, ItemID("bullet1"), bullet.ID())
 	assert.Equal(t, ItemTypeBullet, bullet.Type())
-	assert.Equal(t, &Position{X: 3, Y: 8}, bullet.Position())
+	assert.Equal(t, Position{X: 3, Y: 8}, bullet.Position())
 
 	// 1回目は更新されない
 	assert.False(t, bullet.Update())
@@ -230,5 +230,5 @@ func Test_Bullet(t *testing.T) {
 
 	// 30回目は更新される
 	assert.True(t, bullet.Update())
-	assert.Equal(t, &Position{X: 4, Y: 8}, bullet.Position())
+	assert.Equal(t, Position{X: 4, Y: 8}, bullet.Position())
 }
