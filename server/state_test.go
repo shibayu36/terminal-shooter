@@ -40,12 +40,12 @@ func Test_GameState(t *testing.T) {
 	t.Run("弾を追加できる", func(t *testing.T) {
 		gameState := NewGameState(30, 30)
 
-		itemID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionRight)
+		itemID1 := gameState.AddBullet(Position{X: 3, Y: 8}, DirectionRight)
 		assert.Len(t, gameState.Items, 1)
 		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID1].Type())
 		assert.Equal(t, Position{X: 3, Y: 8}, gameState.Items[itemID1].Position())
 
-		itemID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
+		itemID2 := gameState.AddBullet(Position{X: 1, Y: 2}, DirectionRight)
 		assert.Len(t, gameState.Items, 2)
 		assert.Equal(t, ItemTypeBullet, gameState.Items[itemID2].Type())
 		assert.Equal(t, Position{X: 1, Y: 2}, gameState.Items[itemID2].Position())
@@ -56,7 +56,7 @@ func Test_GameState_StartUpdateLoop(t *testing.T) {
 	t.Run("updateが定期的に実行される", func(t *testing.T) {
 		gameState := NewGameState(30, 30)
 
-		bulletID := gameState.AddBullet(&Position{X: 0, Y: 0}, DirectionRight)
+		bulletID := gameState.AddBullet(Position{X: 0, Y: 0}, DirectionRight)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -73,7 +73,7 @@ func Test_GameState_StartUpdateLoop(t *testing.T) {
 		gameState := NewGameState(30, 30)
 		ctx, cancel := context.WithCancel(context.Background())
 
-		bulletID := gameState.AddBullet(&Position{X: 0, Y: 0}, DirectionRight)
+		bulletID := gameState.AddBullet(Position{X: 0, Y: 0}, DirectionRight)
 
 		gameState.StartUpdateLoop(ctx)
 
@@ -92,13 +92,13 @@ func Test_GameState_update(t *testing.T) {
 		gameState := NewGameState(30, 30)
 
 		// 弾を追加
-		bulletID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionLeft)
+		bulletID1 := gameState.AddBullet(Position{X: 3, Y: 8}, DirectionLeft)
 		// 2回動かす
 		gameState.update(itemsUpdatedCh)
 		gameState.update(itemsUpdatedCh)
 
 		// 弾をもう一つ追加
-		bulletID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionUp)
+		bulletID2 := gameState.AddBullet(Position{X: 1, Y: 2}, DirectionUp)
 
 		// 28回動かすと、bullet1だけ動く
 		for range 28 {
@@ -122,7 +122,7 @@ func Test_GameState_update(t *testing.T) {
 		itemsUpdatedCh := make(chan struct{}, 10)
 		gameState := NewGameState(30, 30)
 
-		bulletID := gameState.AddBullet(&Position{X: 1, Y: 0}, DirectionLeft)
+		bulletID := gameState.AddBullet(Position{X: 1, Y: 0}, DirectionLeft)
 
 		// 30回更新したタイミングではまだ盤面上
 		for range 30 {
@@ -144,16 +144,16 @@ func Test_GameState_update(t *testing.T) {
 func Test_GameState_isWithinBounds(t *testing.T) {
 	testCases := []struct {
 		name     string
-		pos      *Position
+		pos      Position
 		expected bool
 	}{
-		{name: "盤面内にある", pos: &Position{X: 15, Y: 15}, expected: true},
-		{name: "盤面内にある", pos: &Position{X: 0, Y: 0}, expected: true},
-		{name: "盤面内にある", pos: &Position{X: 29, Y: 29}, expected: true},
-		{name: "X < 0で盤面外にある", pos: &Position{X: -1, Y: 15}, expected: false},
-		{name: "X >= 30で盤面外にある", pos: &Position{X: 30, Y: 15}, expected: false},
-		{name: "Y < 0で盤面外にある", pos: &Position{X: 15, Y: -1}, expected: false},
-		{name: "Y >= 30で盤面外にある", pos: &Position{X: 15, Y: 30}, expected: false},
+		{name: "盤面内にある", pos: Position{X: 15, Y: 15}, expected: true},
+		{name: "盤面内にある", pos: Position{X: 0, Y: 0}, expected: true},
+		{name: "盤面内にある", pos: Position{X: 29, Y: 29}, expected: true},
+		{name: "X < 0で盤面外にある", pos: Position{X: -1, Y: 15}, expected: false},
+		{name: "X >= 30で盤面外にある", pos: Position{X: 30, Y: 15}, expected: false},
+		{name: "Y < 0で盤面外にある", pos: Position{X: 15, Y: -1}, expected: false},
+		{name: "Y >= 30で盤面外にある", pos: Position{X: 15, Y: 30}, expected: false},
 	}
 
 	for _, tc := range testCases {
@@ -168,12 +168,12 @@ func Test_GameState_isWithinBounds(t *testing.T) {
 func Test_GameState_ItemsOperation(t *testing.T) {
 	gameState := NewGameState(30, 30)
 
-	bulletID1 := gameState.AddBullet(&Position{X: 3, Y: 8}, DirectionLeft)
-	bullet1 := NewBullet(bulletID1, &Position{X: 3, Y: 8}, DirectionLeft)
-	bulletID2 := gameState.AddBullet(&Position{X: 1, Y: 2}, DirectionUp)
-	bullet2 := NewBullet(bulletID2, &Position{X: 1, Y: 2}, DirectionUp)
-	bulletID3 := gameState.AddBullet(&Position{X: 2, Y: 3}, DirectionRight)
-	bullet3 := NewBullet(bulletID3, &Position{X: 2, Y: 3}, DirectionRight)
+	bulletID1 := gameState.AddBullet(Position{X: 3, Y: 8}, DirectionLeft)
+	bullet1 := NewBullet(bulletID1, Position{X: 3, Y: 8}, DirectionLeft)
+	bulletID2 := gameState.AddBullet(Position{X: 1, Y: 2}, DirectionUp)
+	bullet2 := NewBullet(bulletID2, Position{X: 1, Y: 2}, DirectionUp)
+	bulletID3 := gameState.AddBullet(Position{X: 2, Y: 3}, DirectionRight)
+	bullet3 := NewBullet(bulletID3, Position{X: 2, Y: 3}, DirectionRight)
 
 	items := gameState.GetItems()
 	assert.Len(t, items, 3)
@@ -214,7 +214,7 @@ func Test_GameState_ItemsOperation(t *testing.T) {
 }
 
 func Test_Bullet(t *testing.T) {
-	bullet := NewBullet("bullet1", &Position{X: 3, Y: 8}, DirectionRight)
+	bullet := NewBullet("bullet1", Position{X: 3, Y: 8}, DirectionRight)
 
 	assert.Equal(t, ItemID("bullet1"), bullet.ID())
 	assert.Equal(t, ItemTypeBullet, bullet.Type())

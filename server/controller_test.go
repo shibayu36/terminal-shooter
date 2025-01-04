@@ -226,8 +226,8 @@ func TestController_StartPublishLoop(t *testing.T) {
 		itemsUpdatedCh := make(chan struct{}, 10)
 		controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
 
-		bulletID1 := state.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
-		bulletID2 := state.AddBullet(&Position{X: 2, Y: 3}, DirectionUp)
+		bulletID1 := state.AddBullet(Position{X: 1, Y: 2}, DirectionRight)
+		bulletID2 := state.AddBullet(Position{X: 2, Y: 3}, DirectionUp)
 
 		itemsUpdatedCh <- struct{}{}
 
@@ -267,8 +267,8 @@ func TestController_StartPublishLoop(t *testing.T) {
 		err := controller.OnConnected(client, nil)
 		require.NoError(t, err)
 
-		bulletID1 := state.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
-		bulletID2 := state.AddBullet(&Position{X: 2, Y: 3}, DirectionUp)
+		bulletID1 := state.AddBullet(Position{X: 1, Y: 2}, DirectionRight)
+		bulletID2 := state.AddBullet(Position{X: 2, Y: 3}, DirectionUp)
 		state.removeItem(bulletID1)
 
 		itemsUpdatedCh := make(chan struct{}, 10)

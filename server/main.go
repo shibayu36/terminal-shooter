@@ -45,7 +45,7 @@ func run() error {
 		for range ticker.C {
 			directions := []Direction{DirectionUp, DirectionDown, DirectionLeft, DirectionRight}
 			//nolint:gosec
-			gameState.AddBullet(&Position{X: rand.Intn(30), Y: rand.Intn(30)}, directions[rand.Intn(4)])
+			gameState.AddBullet(Position{X: rand.Intn(30), Y: rand.Intn(30)}, directions[rand.Intn(4)])
 		}
 	}()
 

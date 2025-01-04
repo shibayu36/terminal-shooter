@@ -160,7 +160,7 @@ func (gs *GameState) removeItem(itemID ItemID) {
 }
 
 // 弾を追加する
-func (gs *GameState) AddBullet(position *Position, direction Direction) ItemID {
+func (gs *GameState) AddBullet(position Position, direction Direction) ItemID {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
@@ -229,10 +229,10 @@ type Bullet struct {
 
 var _ Item = (*Bullet)(nil)
 
-func NewBullet(id ItemID, position *Position, direction Direction) *Bullet {
+func NewBullet(id ItemID, position Position, direction Direction) *Bullet {
 	return &Bullet{
 		id:        id,
-		position:  *position,
+		position:  position,
 		direction: direction,
 		moveTick:  30, // 60fpsで0.5秒
 		tick:      0,
