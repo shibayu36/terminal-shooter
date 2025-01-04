@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 type mockClient struct {
 	id        string
 	published []*packets.PublishPacket
+	mu        sync.Mutex
 }
 
 func (c *mockClient) ID() string {
@@ -22,8 +24,16 @@ func (c *mockClient) ID() string {
 }
 
 func (c *mockClient) Publish(publishPacket *packets.PublishPacket) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.published = append(c.published, publishPacket)
 	return nil
+}
+
+func (c *mockClient) Published() []*packets.PublishPacket {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.published
 }
 
 func TestController_OnConnected(t *testing.T) {
@@ -76,14 +86,14 @@ func TestController_OnSubscribed(t *testing.T) {
 	err = controller.OnSubscribed(cl3, nil)
 	require.NoError(t, err)
 
-	require.Len(t, cl3.published, 2)
+	require.Len(t, cl3.Published(), 2)
 
 	// Topic名はplayer_state
-	assert.Equal(t, "player_state", cl3.published[0].TopicName)
-	assert.Equal(t, "player_state", cl3.published[1].TopicName)
+	assert.Equal(t, "player_state", cl3.Published()[0].TopicName)
+	assert.Equal(t, "player_state", cl3.Published()[1].TopicName)
 
 	idToState := map[string]*shared.PlayerState{}
-	for _, published := range cl3.published {
+	for _, published := range cl3.Published() {
 		publishedState := &shared.PlayerState{}
 		err := proto.Unmarshal(published.Payload, publishedState)
 		require.NoError(t, err)
@@ -147,10 +157,10 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 
 	// cl1, cl2, cl3にそれぞれ位置が送信されている
 	for _, cl := range []*mockClient{cl1, cl2, cl3} {
-		require.Len(t, cl.published, 1)
-		assert.Equal(t, "player_state", cl.published[0].TopicName)
+		require.Len(t, cl.Published(), 1)
+		assert.Equal(t, "player_state", cl.Published()[0].TopicName)
 		publishedState := &shared.PlayerState{}
-		err := proto.Unmarshal(cl.published[0].Payload, publishedState)
+		err := proto.Unmarshal(cl.Published()[0].Payload, publishedState)
 		require.NoError(t, err)
 		assert.EqualValues(t, 15, publishedState.GetPosition().GetX())
 		assert.EqualValues(t, 25, publishedState.GetPosition().GetY())
@@ -187,10 +197,10 @@ func TestController_OnDisconnected(t *testing.T) {
 
 	// cl1の切断がcl2, cl3に送信されている
 	for _, cl := range []*mockClient{cl2, cl3} {
-		require.Len(t, cl.published, 1)
-		assert.Equal(t, "player_state", cl.published[0].TopicName)
+		require.Len(t, cl.Published(), 1)
+		assert.Equal(t, "player_state", cl.Published()[0].TopicName)
 		publishedState := &shared.PlayerState{}
-		err := proto.Unmarshal(cl.published[0].Payload, publishedState)
+		err := proto.Unmarshal(cl.Published()[0].Payload, publishedState)
 		require.NoError(t, err)
 		assert.Equal(t, shared.Status_DISCONNECTED, publishedState.GetStatus())
 	}
@@ -226,12 +236,12 @@ func TestController_StartPublishLoop(t *testing.T) {
 
 		// アイテムの状態が全てのクライアントに送信されている
 		for _, cl := range []*mockClient{cl1, cl2} {
-			require.Len(t, cl.published, 2)
-			assert.Equal(t, "item_state", cl.published[0].TopicName)
-			assert.Equal(t, "item_state", cl.published[1].TopicName)
+			require.Len(t, cl.Published(), 2)
+			assert.Equal(t, "item_state", cl.Published()[0].TopicName)
+			assert.Equal(t, "item_state", cl.Published()[1].TopicName)
 
 			idToState := map[ItemID]*shared.ItemState{}
-			for _, published := range cl.published {
+			for _, published := range cl.Published() {
 				publishedState := &shared.ItemState{}
 				err := proto.Unmarshal(published.Payload, publishedState)
 				require.NoError(t, err)
@@ -271,7 +281,7 @@ func TestController_StartPublishLoop(t *testing.T) {
 
 		// アクティブなアイテムと削除済みアイテムが同時に送信されている
 		idToState := map[ItemID]*shared.ItemState{}
-		for _, published := range client.published {
+		for _, published := range client.Published() {
 			publishedState := &shared.ItemState{}
 			err := proto.Unmarshal(published.Payload, publishedState)
 			require.NoError(t, err)
