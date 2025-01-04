@@ -246,6 +246,7 @@ func (g *Game) draw() {
 	itemStyle := tcell.StyleDefault.Foreground(tcell.ColorYellow)
 	for _, item := range g.items {
 		var r rune
+		//nolint:gocritic
 		switch item.Type {
 		case shared.ItemType_BULLET:
 			r = '*'

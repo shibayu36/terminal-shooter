@@ -253,8 +253,8 @@ func TestController_StartPublishLoop(t *testing.T) {
 		state := NewGameState(30, 30)
 		controller := NewController(broker, state)
 
-		cl := &mockClient{id: "id1"}
-		err := controller.OnConnected(cl, nil)
+		client := &mockClient{id: "id1"}
+		err := controller.OnConnected(client, nil)
 		require.NoError(t, err)
 
 		bulletID1 := state.AddBullet(&Position{X: 1, Y: 2}, DirectionRight)
@@ -271,7 +271,7 @@ func TestController_StartPublishLoop(t *testing.T) {
 
 		// アクティブなアイテムと削除済みアイテムが同時に送信されている
 		idToState := map[ItemID]*shared.ItemState{}
-		for _, published := range cl.published {
+		for _, published := range client.published {
 			publishedState := &shared.ItemState{}
 			err := proto.Unmarshal(published.Payload, publishedState)
 			require.NoError(t, err)
