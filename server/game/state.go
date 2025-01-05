@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"bytes"
@@ -76,7 +76,7 @@ func (gs *GameState) update(updatedItemsCh chan<- struct{}) {
 	for _, updatedItem := range updatedItems {
 		// 盤面外に出たアイテムを削除する
 		if !gs.isWithinBounds(updatedItem) {
-			gs.removeItem(updatedItem.ID())
+			gs.RemoveItem(updatedItem.ID())
 		}
 	}
 
@@ -148,7 +148,7 @@ func (gs *GameState) ClearRemovedItem(itemID ItemID) {
 }
 
 // アイテムを削除する
-func (gs *GameState) removeItem(itemID ItemID) {
+func (gs *GameState) RemoveItem(itemID ItemID) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 	item, ok := gs.Items[itemID]

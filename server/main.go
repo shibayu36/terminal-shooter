@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/shibayu36/terminal-shooter/server/game"
 )
 
 func main() {
@@ -23,7 +25,7 @@ func run() error {
 
 	broker := NewBroker()
 
-	gameState := NewGameState(30, 30)
+	gameState := game.NewGameState(30, 30)
 	controller := NewController(broker, gameState)
 	server, err := NewServer(":1883", controller)
 	if err != nil {
@@ -43,9 +45,17 @@ func run() error {
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
-			directions := []Direction{DirectionUp, DirectionDown, DirectionLeft, DirectionRight}
+			directions := []game.Direction{
+				game.DirectionUp,
+				game.DirectionDown,
+				game.DirectionLeft,
+				game.DirectionRight,
+			}
 			//nolint:gosec
-			gameState.AddBullet(Position{X: rand.Intn(30), Y: rand.Intn(30)}, directions[rand.Intn(4)])
+			gameState.AddBullet(
+				game.Position{X: rand.Intn(30), Y: rand.Intn(30)},
+				directions[rand.Intn(4)],
+			)
 		}
 	}()
 

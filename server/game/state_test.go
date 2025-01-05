@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"context"
@@ -184,8 +184,8 @@ func Test_GameState_ItemsOperation(t *testing.T) {
 	}, items)
 
 	// bulletID1と3を削除
-	gameState.removeItem(bulletID1)
-	gameState.removeItem(bulletID3)
+	gameState.RemoveItem(bulletID1)
+	gameState.RemoveItem(bulletID3)
 
 	// Itemsにはbullet2のみ残っている
 	items = gameState.GetItems()
