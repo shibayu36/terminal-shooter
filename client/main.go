@@ -137,20 +137,31 @@ func getDirectionRune(direction shared.Direction) rune {
 	}
 }
 
+const (
+	bgColor          = tcell.Color232
+	mapColor         = tcell.Color255
+	myPlayerColor    = tcell.Color46
+	otherPlayerColor = tcell.Color196
+	itemColor        = tcell.Color226
+)
+
 func (g *Game) draw() {
 	g.screen.Clear()
 
-	// マップの境界を描画
-	style := tcell.StyleDefault.Foreground(tcell.ColorWhite)
+	defaultStyle := tcell.StyleDefault.
+		Background(bgColor).
+		Foreground(mapColor)
+
+	// マップを描画
 	for y := range g.height {
 		for x := range g.width {
-			g.screen.SetContent(x, y, '.', nil, style)
+			g.screen.SetContent(x, y, '.', nil, defaultStyle)
 		}
 	}
 
 	// プレイヤーを描画
-	myPlayerStyle := tcell.StyleDefault.Foreground(tcell.ColorGreen)
-	otherPlayerStyle := tcell.StyleDefault.Foreground(tcell.ColorRed)
+	myPlayerStyle := defaultStyle.Foreground(myPlayerColor)
+	otherPlayerStyle := defaultStyle.Foreground(otherPlayerColor)
 	for _, player := range g.players {
 		style := otherPlayerStyle
 		if player.ID == g.myPlayerID {
@@ -166,7 +177,7 @@ func (g *Game) draw() {
 	}
 
 	// アイテムを描画
-	itemStyle := tcell.StyleDefault.Foreground(tcell.ColorYellow)
+	itemStyle := defaultStyle.Foreground(itemColor)
 	for _, item := range g.items {
 		var r rune
 		//nolint:gocritic
