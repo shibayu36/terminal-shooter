@@ -7,6 +7,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
+	"github.com/shibayu36/terminal-shooter/server/game"
 	"github.com/shibayu36/terminal-shooter/shared"
 	"google.golang.org/protobuf/proto"
 )
@@ -14,18 +15,18 @@ import (
 // Controller クライアントからのパケットをゲームの状態に反映し、さらに他のクライアントに状態同期をする役割を持つ
 type Controller struct {
 	broker *Broker
-	game   *GameState
+	game   *game.Game
 }
 
 var _ Hooker = (*Controller)(nil)
 
-func NewController(broker *Broker, game *GameState) *Controller {
+func NewController(broker *Broker, game *game.Game) *Controller {
 	return &Controller{broker: broker, game: game}
 }
 
 func (c *Controller) OnConnected(client Client, _ *packets.ConnectPacket) error {
 	c.broker.AddClient(client)
-	c.game.AddPlayer(PlayerID(client.ID()))
+	c.game.AddPlayer(game.PlayerID(client.ID()))
 
 	// Player状態を出力
 	slog.Info("all players", "players", c.game.String())
@@ -36,7 +37,7 @@ func (c *Controller) OnConnected(client Client, _ *packets.ConnectPacket) error 
 func (c *Controller) OnSubscribed(client Client, _ *packets.SubscribePacket) error {
 	// Subscribeが来たら、現在の他プレイヤーの位置をそのクライアントに送信する
 	for playerID, player := range c.game.GetPlayers() {
-		if playerID == PlayerID(client.ID()) {
+		if playerID == game.PlayerID(client.ID()) {
 			continue
 		}
 
@@ -71,7 +72,7 @@ func (c *Controller) OnDisconnected(client Client) error {
 	slog.Info("client disconnected", "client_id", client.ID())
 	c.broker.RemoveClient(client)
 
-	c.game.RemovePlayer(PlayerID(client.ID()))
+	c.game.RemovePlayer(game.PlayerID(client.ID()))
 
 	playerState := &shared.PlayerState{
 		PlayerId: client.ID(),
@@ -91,14 +92,14 @@ func (c *Controller) OnDisconnected(client Client) error {
 
 // player_stateパケットを受信した時の処理
 func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.PublishPacket) error {
-	playerID := PlayerID(client.ID())
+	playerID := game.PlayerID(client.ID())
 	playerState := &shared.PlayerState{}
 	err := proto.Unmarshal(publishPacket.Payload, playerState)
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal player state")
 	}
 
-	direction, err := FromSharedDirection(playerState.GetDirection())
+	direction, err := game.FromSharedDirection(playerState.GetDirection())
 	if err != nil {
 		// 方向が不正な場合は無視する
 		//nolint:nilerr
@@ -107,7 +108,7 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 
 	updatedPlayer := c.game.MovePlayer(
 		playerID,
-		Position{
+		game.Position{
 			X: int(playerState.GetPosition().GetX()),
 			Y: int(playerState.GetPosition().GetY()),
 		},

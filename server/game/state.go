@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"bytes"
@@ -13,13 +13,14 @@ import (
 )
 
 type (
+	//nolint:revive
 	GameID   string
 	PlayerID string
 	ItemID   string
 )
 
 // 1つのゲーム内の状態を管理する
-type GameState struct {
+type Game struct {
 	Width  int
 	Height int
 
@@ -32,8 +33,8 @@ type GameState struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
-func NewGameState(width, height int) *GameState {
-	return &GameState{
+func NewGame(width, height int) *Game {
+	return &Game{
 		Width:        width,
 		Height:       height,
 		Players:      make(map[PlayerID]*PlayerState),
@@ -44,7 +45,7 @@ func NewGameState(width, height int) *GameState {
 
 // ゲーム状態を更新するループを開始する
 // アイテムが何らか更新されたことを通知するチャネルを返す
-func (gs *GameState) StartUpdateLoop(ctx context.Context) <-chan struct{} {
+func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 	ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
 
 	itemsUpdatedCh := make(chan struct{})
@@ -53,7 +54,7 @@ func (gs *GameState) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 		for {
 			select {
 			case <-ticker.C:
-				gs.update(itemsUpdatedCh)
+				g.update(itemsUpdatedCh)
 			case <-ctx.Done():
 				return
 			}
@@ -64,8 +65,8 @@ func (gs *GameState) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 }
 
 // ゲーム状態を更新する
-func (gs *GameState) update(updatedItemsCh chan<- struct{}) {
-	items := gs.GetItems()
+func (g *Game) update(updatedItemsCh chan<- struct{}) {
+	items := g.GetItems()
 
 	updatedItems := []Item{}
 	for _, item := range items {
@@ -75,8 +76,8 @@ func (gs *GameState) update(updatedItemsCh chan<- struct{}) {
 	}
 	for _, updatedItem := range updatedItems {
 		// 盤面外に出たアイテムを削除する
-		if !gs.isWithinBounds(updatedItem) {
-			gs.removeItem(updatedItem.ID())
+		if !g.isWithinBounds(updatedItem) {
+			g.RemoveItem(updatedItem.ID())
 		}
 	}
 
@@ -86,17 +87,17 @@ func (gs *GameState) update(updatedItemsCh chan<- struct{}) {
 }
 
 // アイテムが盤面内にあるかどうかを判定する
-func (gs *GameState) isWithinBounds(item Item) bool {
+func (g *Game) isWithinBounds(item Item) bool {
 	pos := item.Position()
-	return pos.X >= 0 && pos.X < gs.Width && pos.Y >= 0 && pos.Y < gs.Height
+	return pos.X >= 0 && pos.X < g.Width && pos.Y >= 0 && pos.Y < g.Height
 }
 
 // プレイヤーを追加する
 // 全てデフォルトで初期化する
-func (gs *GameState) AddPlayer(playerID PlayerID) {
-	gs.mu.Lock()
-	defer gs.mu.Unlock()
-	gs.Players[playerID] = &PlayerState{
+func (g *Game) AddPlayer(playerID PlayerID) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.Players[playerID] = &PlayerState{
 		PlayerID:  playerID,
 		Position:  Position{X: 0, Y: 0},
 		Direction: DirectionUp,
@@ -104,77 +105,77 @@ func (gs *GameState) AddPlayer(playerID PlayerID) {
 }
 
 // プレイヤーを削除する
-func (gs *GameState) RemovePlayer(playerID PlayerID) {
-	gs.mu.Lock()
-	defer gs.mu.Unlock()
-	delete(gs.Players, playerID)
+func (g *Game) RemovePlayer(playerID PlayerID) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	delete(g.Players, playerID)
 }
 
 // プレイヤーの位置を更新する
-func (gs *GameState) MovePlayer(playerID PlayerID, position Position, direction Direction) *PlayerState {
-	gs.mu.Lock()
-	defer gs.mu.Unlock()
-	gs.Players[playerID].Position = position
-	gs.Players[playerID].Direction = direction
-	return gs.Players[playerID]
+func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direction) *PlayerState {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.Players[playerID].Position = position
+	g.Players[playerID].Direction = direction
+	return g.Players[playerID]
 }
 
 // プレイヤー一覧を取得する
-func (gs *GameState) GetPlayers() map[PlayerID]*PlayerState {
-	gs.mu.RLock()
-	defer gs.mu.RUnlock()
-	return shared.CopyMap(gs.Players)
+func (g *Game) GetPlayers() map[PlayerID]*PlayerState {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return shared.CopyMap(g.Players)
 }
 
 // アイテム一覧を取得する
-func (gs *GameState) GetItems() map[ItemID]Item {
-	gs.mu.RLock()
-	defer gs.mu.RUnlock()
-	return shared.CopyMap(gs.Items)
+func (g *Game) GetItems() map[ItemID]Item {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return shared.CopyMap(g.Items)
 }
 
 // 削除されたアイテム一覧を取得する
-func (gs *GameState) GetRemovedItems() map[ItemID]Item {
-	gs.mu.RLock()
-	defer gs.mu.RUnlock()
-	return shared.CopyMap(gs.RemovedItems)
+func (g *Game) GetRemovedItems() map[ItemID]Item {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return shared.CopyMap(g.RemovedItems)
 }
 
 // 削除されたアイテムをクリアする
-func (gs *GameState) ClearRemovedItem(itemID ItemID) {
-	gs.mu.Lock()
-	defer gs.mu.Unlock()
-	delete(gs.RemovedItems, itemID)
+func (g *Game) ClearRemovedItem(itemID ItemID) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	delete(g.RemovedItems, itemID)
 }
 
 // アイテムを削除する
-func (gs *GameState) removeItem(itemID ItemID) {
-	gs.mu.Lock()
-	defer gs.mu.Unlock()
-	item, ok := gs.Items[itemID]
+func (g *Game) RemoveItem(itemID ItemID) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	item, ok := g.Items[itemID]
 	if !ok {
 		return
 	}
-	delete(gs.Items, itemID)
-	gs.RemovedItems[itemID] = item
+	delete(g.Items, itemID)
+	g.RemovedItems[itemID] = item
 }
 
 // 弾を追加する
-func (gs *GameState) AddBullet(position Position, direction Direction) ItemID {
-	gs.mu.Lock()
-	defer gs.mu.Unlock()
+func (g *Game) AddBullet(position Position, direction Direction) ItemID {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
-	gs.Items[bullet.ID()] = bullet
+	g.Items[bullet.ID()] = bullet
 	return bullet.ID()
 }
 
 // GetState ゲームの状態をデバッグ用に表示する
-func (gs *GameState) String() string {
-	gs.mu.RLock()
-	defer gs.mu.RUnlock()
+func (g *Game) String() string {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
 
 	buf := bytes.NewBufferString("")
-	for playerID, player := range gs.Players {
+	for playerID, player := range g.Players {
 		fmt.Fprintf(buf, "Player: %s, Position: %v\n", string(playerID), player.Position)
 	}
 
