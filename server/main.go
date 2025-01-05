@@ -25,7 +25,7 @@ func run() error {
 
 	broker := NewBroker()
 
-	gameState := game.NewGameState(30, 30)
+	gameState := game.NewGame(30, 30)
 	controller := NewController(broker, gameState)
 	server, err := NewServer(":1883", controller)
 	if err != nil {

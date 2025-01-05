@@ -15,12 +15,12 @@ import (
 // Controller クライアントからのパケットをゲームの状態に反映し、さらに他のクライアントに状態同期をする役割を持つ
 type Controller struct {
 	broker *Broker
-	game   *game.GameState
+	game   *game.Game
 }
 
 var _ Hooker = (*Controller)(nil)
 
-func NewController(broker *Broker, game *game.GameState) *Controller {
+func NewController(broker *Broker, game *game.Game) *Controller {
 	return &Controller{broker: broker, game: game}
 }
 
