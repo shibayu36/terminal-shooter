@@ -11,6 +11,7 @@ linters:
     - perfsprint # パフォーマンスチューニングはここまで求められていない
     - exportloopref # deprecated
     - godox
+    - testpackage # 同一にしてテストしやすくしたい
 
 linters-settings:
   cyclop:
