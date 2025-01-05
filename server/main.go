@@ -24,8 +24,8 @@ func run() error {
 	broker := NewBroker()
 
 	gameState := NewGameState(30, 30)
-	hook := NewController(broker, gameState)
-	server, err := NewServer(":1883", hook)
+	controller := NewController(broker, gameState)
+	server, err := NewServer(":1883", controller)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func run() error {
 	}()
 
 	itemsUpdatedCh := gameState.StartUpdateLoop(ctx)
-	hook.StartPublishLoop(ctx, itemsUpdatedCh)
+	controller.StartPublishLoop(ctx, itemsUpdatedCh)
 
 	ticker := time.NewTicker(1234 * time.Millisecond)
 	defer ticker.Stop()
