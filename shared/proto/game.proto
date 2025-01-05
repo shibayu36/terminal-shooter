@@ -55,3 +55,9 @@ enum Status {
 enum ItemType {
   BULLET = 0;
 }
+
+// アイテムを作成するリクエスト
+// クライアントから送るcreate_itemトピックのPayloadとして使う
+message CreateItemRequest {
+  ItemType type = 1;
+}
