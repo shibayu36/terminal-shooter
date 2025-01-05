@@ -47,7 +47,7 @@ func NewGameState(width, height int) *GameState {
 func (gs *GameState) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 	ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
 
-	itemsUpdatedCh := make(chan struct{}, 10)
+	itemsUpdatedCh := make(chan struct{})
 	go func() {
 		defer ticker.Stop()
 		for {
