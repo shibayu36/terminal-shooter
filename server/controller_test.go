@@ -45,7 +45,7 @@ func TestController_OnConnected(t *testing.T) {
 	cl1 := &mockClient{id: "id1"}
 	err := controller.OnConnected(cl1, nil)
 	require.NoError(t, err)
-	assert.Equal(t, &game.PlayerState{
+	assert.Equal(t, &game.Player{
 		PlayerID:  game.PlayerID("id1"),
 		Position:  game.Position{X: 0, Y: 0},
 		Direction: game.DirectionUp,
@@ -55,7 +55,7 @@ func TestController_OnConnected(t *testing.T) {
 	cl2 := &mockClient{id: "id2"}
 	err = controller.OnConnected(cl2, nil)
 	require.NoError(t, err)
-	assert.Equal(t, &game.PlayerState{
+	assert.Equal(t, &game.Player{
 		PlayerID:  game.PlayerID("id2"),
 		Position:  game.Position{X: 0, Y: 0},
 		Direction: game.DirectionUp,

@@ -7,16 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/google/uuid"
 	"github.com/shibayu36/terminal-shooter/shared"
-)
-
-type (
-	//nolint:revive
-	GameID   string
-	PlayerID string
-	ItemID   string
 )
 
 // 1つのゲーム内の状態を管理する
@@ -24,7 +16,7 @@ type Game struct {
 	Width  int
 	Height int
 
-	Players map[PlayerID]*PlayerState
+	Players map[PlayerID]*Player
 	Items   map[ItemID]Item
 
 	// 削除されたアイテムを管理する
@@ -37,7 +29,7 @@ func NewGame(width, height int) *Game {
 	return &Game{
 		Width:        width,
 		Height:       height,
-		Players:      make(map[PlayerID]*PlayerState),
+		Players:      make(map[PlayerID]*Player),
 		Items:        make(map[ItemID]Item),
 		RemovedItems: make(map[ItemID]Item),
 	}
@@ -97,7 +89,7 @@ func (g *Game) isWithinBounds(item Item) bool {
 func (g *Game) AddPlayer(playerID PlayerID) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	g.Players[playerID] = &PlayerState{
+	g.Players[playerID] = &Player{
 		PlayerID:  playerID,
 		Position:  Position{X: 0, Y: 0},
 		Direction: DirectionUp,
@@ -112,7 +104,7 @@ func (g *Game) RemovePlayer(playerID PlayerID) {
 }
 
 // プレイヤーの位置を更新する
-func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direction) *PlayerState {
+func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direction) *Player {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.Players[playerID].Position = position
@@ -121,7 +113,7 @@ func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direct
 }
 
 // プレイヤー一覧を取得する
-func (g *Game) GetPlayers() map[PlayerID]*PlayerState {
+func (g *Game) GetPlayers() map[PlayerID]*Player {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return shared.CopyMap(g.Players)
@@ -180,145 +172,4 @@ func (g *Game) String() string {
 	}
 
 	return buf.String()
-}
-
-// プレイヤーの状態を管理する
-type PlayerState struct {
-	PlayerID  PlayerID
-	Position  Position
-	Direction Direction
-}
-
-// プレイヤーの状態をshared.PlayerStateに変換する
-func (ps *PlayerState) ToSharedPlayerState(status shared.Status) *shared.PlayerState {
-	return &shared.PlayerState{
-		PlayerId: string(ps.PlayerID),
-		Position: &shared.Position{
-			X: int32(ps.Position.X),
-			Y: int32(ps.Position.Y),
-		},
-		Direction: ps.Direction.ToSharedDirection(),
-		Status:    status,
-	}
-}
-
-type ItemType string
-
-const (
-	ItemTypeBullet ItemType = "bullet"
-)
-
-type Item interface {
-	ID() ItemID
-	Type() ItemType
-	Position() Position
-	Update() (updated bool)
-}
-
-type Bullet struct {
-	id        ItemID
-	position  Position
-	direction Direction
-	// 何tickで動くか
-	moveTick int
-
-	// 現在のtick
-	tick int
-
-	mu sync.RWMutex `exhaustruct:"optional"`
-}
-
-var _ Item = (*Bullet)(nil)
-
-func NewBullet(id ItemID, position Position, direction Direction) *Bullet {
-	return &Bullet{
-		id:        id,
-		position:  position,
-		direction: direction,
-		moveTick:  30, // 60fpsで0.5秒
-		tick:      0,
-	}
-}
-
-func (b *Bullet) ID() ItemID {
-	return b.id
-}
-
-func (b *Bullet) Type() ItemType {
-	return ItemTypeBullet
-}
-
-func (b *Bullet) Position() Position {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	return b.position
-}
-
-func (b *Bullet) Update() bool {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.tick++
-	if b.tick >= b.moveTick {
-		b.tick = 0
-		switch b.direction {
-		case DirectionUp:
-			b.position.Y--
-		case DirectionDown:
-			b.position.Y++
-		case DirectionLeft:
-			b.position.X--
-		case DirectionRight:
-			b.position.X++
-		}
-		return true
-	}
-	return false
-}
-
-// 位置を管理する
-type Position struct {
-	X int
-	Y int
-}
-
-// 向き
-type Direction string
-
-const (
-	DirectionUp    Direction = "up"
-	DirectionDown  Direction = "down"
-	DirectionLeft  Direction = "left"
-	DirectionRight Direction = "right"
-)
-
-// Directionをshared.Directionに変換する
-func (d Direction) ToSharedDirection() shared.Direction {
-	switch d {
-	case DirectionUp:
-		return shared.Direction_UP
-	case DirectionDown:
-		return shared.Direction_DOWN
-	case DirectionLeft:
-		return shared.Direction_LEFT
-	case DirectionRight:
-		return shared.Direction_RIGHT
-	default:
-		panic(fmt.Sprintf("invalid direction: %s", d))
-	}
-}
-
-// shared.DirectionをDirectionに変換する
-func FromSharedDirection(d shared.Direction) (Direction, error) {
-	switch d {
-	case shared.Direction_UP:
-		return DirectionUp, nil
-	case shared.Direction_DOWN:
-		return DirectionDown, nil
-	case shared.Direction_LEFT:
-		return DirectionLeft, nil
-	case shared.Direction_RIGHT:
-		return DirectionRight, nil
-	default:
-		return "", errors.Newf("invalid direction: %d", d)
-	}
 }
