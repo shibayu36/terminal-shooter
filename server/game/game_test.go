@@ -212,3 +212,33 @@ func Test_Game_ItemsOperation(t *testing.T) {
 		bulletID3: bullet3,
 	}, removedItems)
 }
+
+func Test_Game_ShootBullet(t *testing.T) {
+	t.Run("プレイヤーが弾を発射できる", func(t *testing.T) {
+		game := NewGame(30, 30)
+
+		playerID1 := PlayerID("player1")
+		playerID2 := PlayerID("player2")
+
+		game.AddPlayer(playerID1)
+		game.AddPlayer(playerID2)
+
+		game.MovePlayer(playerID1, Position{X: 3, Y: 8}, DirectionRight)
+
+		bulletID := game.ShootBullet(playerID1)
+		assert.NotEmpty(t, bulletID)
+
+		// player1の前方に弾が発射されていること
+		bullet, ok := (game.GetItems()[bulletID]).(*Bullet)
+		assert.True(t, ok)
+		assert.Equal(t, Position{X: 4, Y: 8}, bullet.Position())
+		assert.Equal(t, DirectionRight, bullet.direction)
+	})
+
+	t.Run("存在しないプレイヤーから弾を発射すると何もしない", func(t *testing.T) {
+		game := NewGame(30, 30)
+		bulletID := game.ShootBullet(PlayerID("player1"))
+		assert.Empty(t, bulletID)
+		assert.Empty(t, game.GetItems())
+	})
+}

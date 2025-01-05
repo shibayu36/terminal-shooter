@@ -161,6 +161,26 @@ func (g *Game) AddBullet(position Position, direction Direction) ItemID {
 	return bullet.ID()
 }
 
+// あるプレイヤーから弾を発射する
+func (g *Game) ShootBullet(playerID PlayerID) ItemID {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	player, ok := g.Players[playerID]
+	if !ok {
+		return ItemID("")
+	}
+
+	// プレイヤーの前方に発射する
+	position := player.FowardPosition()
+	direction := player.Direction
+
+	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
+	g.Items[bullet.ID()] = bullet
+
+	return bullet.ID()
+}
+
 // GetState ゲームの状態をデバッグ用に表示する
 func (g *Game) String() string {
 	g.mu.RLock()
