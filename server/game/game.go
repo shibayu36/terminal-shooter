@@ -24,7 +24,7 @@ type Game struct {
 	Width  int
 	Height int
 
-	Players map[PlayerID]*PlayerState
+	Players map[PlayerID]*Player
 	Items   map[ItemID]Item
 
 	// 削除されたアイテムを管理する
@@ -37,7 +37,7 @@ func NewGame(width, height int) *Game {
 	return &Game{
 		Width:        width,
 		Height:       height,
-		Players:      make(map[PlayerID]*PlayerState),
+		Players:      make(map[PlayerID]*Player),
 		Items:        make(map[ItemID]Item),
 		RemovedItems: make(map[ItemID]Item),
 	}
@@ -97,7 +97,7 @@ func (g *Game) isWithinBounds(item Item) bool {
 func (g *Game) AddPlayer(playerID PlayerID) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	g.Players[playerID] = &PlayerState{
+	g.Players[playerID] = &Player{
 		PlayerID:  playerID,
 		Position:  Position{X: 0, Y: 0},
 		Direction: DirectionUp,
@@ -112,7 +112,7 @@ func (g *Game) RemovePlayer(playerID PlayerID) {
 }
 
 // プレイヤーの位置を更新する
-func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direction) *PlayerState {
+func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direction) *Player {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.Players[playerID].Position = position
@@ -121,7 +121,7 @@ func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direct
 }
 
 // プレイヤー一覧を取得する
-func (g *Game) GetPlayers() map[PlayerID]*PlayerState {
+func (g *Game) GetPlayers() map[PlayerID]*Player {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return shared.CopyMap(g.Players)
