@@ -154,7 +154,10 @@ func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan
 	go func() {
 		for {
 			select {
-			case <-itemsUpdatedCh:
+			case _, ok := <-itemsUpdatedCh:
+				if !ok {
+					return
+				}
 				c.publishItemStates()
 			case <-ctx.Done():
 				return
