@@ -16,14 +16,14 @@ func (p *Player) FowardPosition() Position {
 }
 
 // プレイヤーの状態をshared.PlayerStateに変換する
-func (ps *Player) ToSharedPlayerState(status shared.Status) *shared.PlayerState {
+func (p *Player) ToSharedPlayerState(status shared.Status) *shared.PlayerState {
 	return &shared.PlayerState{
-		PlayerId: string(ps.PlayerID),
+		PlayerId: string(p.PlayerID),
 		Position: &shared.Position{
-			X: int32(ps.Position.X),
-			Y: int32(ps.Position.Y),
+			X: int32(p.Position.X),
+			Y: int32(p.Position.Y),
 		},
-		Direction: ps.Direction.ToSharedDirection(),
+		Direction: p.Direction.ToSharedDirection(),
 		Status:    status,
 	}
 }
