@@ -10,6 +10,7 @@ message Position {
 }
 
 // プレイヤーの状態
+// player_stateトピックのPayloadとして使う
 message PlayerState {
   string player_id = 1;
   Position position = 2;
@@ -20,6 +21,7 @@ message PlayerState {
 }
 
 // アイテムの状態
+// item_stateトピックのPayloadとして使う
 message ItemState {
   string item_id = 1;
   ItemType type = 2;
@@ -52,4 +54,15 @@ enum Status {
 // アイテムの種類
 enum ItemType {
   BULLET = 0;
+}
+
+// プレイヤーからのアクション
+// クライアントから送るplayer_actionトピックのPayloadとして使う
+message PlayerActionRequest {
+  ActionType type = 1;
+}
+
+// プレイヤーからのアクションの種類
+enum ActionType {
+  SHOOT_BULLET = 0;
 }

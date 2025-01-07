@@ -46,6 +46,22 @@ func (d Direction) ToSharedDirection() shared.Direction {
 	}
 }
 
+// 方向を、dxとdyのベクトルに変換する
+// 返り値は(dx, dy)
+func (d Direction) ToVector() (int, int) {
+	switch d {
+	case DirectionUp:
+		return 0, -1
+	case DirectionDown:
+		return 0, 1
+	case DirectionLeft:
+		return -1, 0
+	case DirectionRight:
+		return 1, 0
+	}
+	return 0, 0
+}
+
 // shared.DirectionをDirectionに変換する
 func FromSharedDirection(d shared.Direction) (Direction, error) {
 	switch d {

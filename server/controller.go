@@ -63,6 +63,8 @@ func (c *Controller) OnPublished(client Client, publishPacket *packets.PublishPa
 	switch publishPacket.TopicName {
 	case "player_state":
 		return c.onReceivePlayerState(client, publishPacket)
+	case "player_action":
+		return c.onReceivePlayerAction(client, publishPacket)
 	default:
 		return errors.New(fmt.Sprintf("invalid topic name: %s", publishPacket.TopicName))
 	}
@@ -125,6 +127,24 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 	}
 
 	slog.Info("all players", "players", c.game.String())
+
+	return nil
+}
+
+func (c *Controller) onReceivePlayerAction(client Client, publishPacket *packets.PublishPacket) error {
+	playerID := game.PlayerID(client.ID())
+
+	playerActionRequest := &shared.PlayerActionRequest{}
+	err := proto.Unmarshal(publishPacket.Payload, playerActionRequest)
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal player action request")
+	}
+
+	//nolint:gocritic // GetType()が増えることを見越してsingleCaseSwitchをignore
+	switch playerActionRequest.GetType() {
+	case shared.ActionType_SHOOT_BULLET:
+		c.game.ShootBullet(playerID)
+	}
 
 	return nil
 }

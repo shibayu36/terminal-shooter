@@ -117,9 +117,31 @@ func (g *Game) handleEvent(event tcell.Event) bool {
 			g.movePlayer(shared.Direction_UP)
 		case tcell.KeyDown:
 			g.movePlayer(shared.Direction_DOWN)
+		case tcell.KeyRune:
+			if ev.Rune() == ' ' {
+				g.shootBullet()
+			}
 		}
 	}
 	return false
+}
+
+func (g *Game) shootBullet() {
+	req := &shared.PlayerActionRequest{
+		Type: shared.ActionType_SHOOT_BULLET,
+	}
+
+	data, err := proto.Marshal(req)
+	if err != nil {
+		log.Printf("Failed to encode player action request: %v", err)
+		return
+	}
+
+	token := g.mqtt.Publish("player_action", 0, false, data)
+	if token.Wait() && token.Error() != nil {
+		log.Printf("Failed to publish player action request: %v", token.Error())
+		return
+	}
 }
 
 func getDirectionRune(direction shared.Direction) rune {

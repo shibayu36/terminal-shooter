@@ -38,8 +38,10 @@ func NewGame(width, height int) *Game {
 // ゲーム状態を更新するループを開始する
 // アイテムが何らか更新されたことを通知するチャネルを返す
 func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
+	// TODO: tickerの生成はgoroutineで行う
 	ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
 
+	// TODO: itemsUpdateChのcloseを行う
 	itemsUpdatedCh := make(chan struct{})
 	go func() {
 		defer ticker.Stop()
@@ -158,6 +160,27 @@ func (g *Game) AddBullet(position Position, direction Direction) ItemID {
 	defer g.mu.Unlock()
 	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
 	g.Items[bullet.ID()] = bullet
+	return bullet.ID()
+}
+
+// あるプレイヤーから弾を発射する
+// TODO: 追加した時に更新通知する必要がある
+func (g *Game) ShootBullet(playerID PlayerID) ItemID {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	player, ok := g.Players[playerID]
+	if !ok {
+		return ItemID("")
+	}
+
+	// プレイヤーの前方に発射する
+	position := player.FowardPosition()
+	direction := player.Direction
+
+	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
+	g.Items[bullet.ID()] = bullet
+
 	return bullet.ID()
 }
 
