@@ -31,6 +31,7 @@ linters-settings:
     exclude:
       - '.+/shared\.PlayerState$'
       - '.+/shared\.ItemState$'
+      - '.+/shared\.CreateItemRequest$'
   varnamelen:
     ignore-names:
       - dx
