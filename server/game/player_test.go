@@ -20,6 +20,6 @@ func Test_Player_FowardPosition(t *testing.T) {
 
 	for _, tc := range testcases {
 		player := &Player{Position: tc.position, Direction: tc.direction}
-		assert.Equal(t, player.FowardPosition(), tc.expected)
+		assert.Equal(t, tc.expected, player.FowardPosition())
 	}
 }
