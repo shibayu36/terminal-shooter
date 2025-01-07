@@ -162,6 +162,7 @@ func (g *Game) AddBullet(position Position, direction Direction) ItemID {
 }
 
 // あるプレイヤーから弾を発射する
+// TODO: 追加した時に更新通知する必要がある
 func (g *Game) ShootBullet(playerID PlayerID) ItemID {
 	g.mu.Lock()
 	defer g.mu.Unlock()

@@ -63,6 +63,8 @@ func (c *Controller) OnPublished(client Client, publishPacket *packets.PublishPa
 	switch publishPacket.TopicName {
 	case "player_state":
 		return c.onReceivePlayerState(client, publishPacket)
+	case "create_item":
+		return c.onReceiveCreateItem(client, publishPacket)
 	default:
 		return errors.New(fmt.Sprintf("invalid topic name: %s", publishPacket.TopicName))
 	}
@@ -125,6 +127,23 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 	}
 
 	slog.Info("all players", "players", c.game.String())
+
+	return nil
+}
+
+func (c *Controller) onReceiveCreateItem(client Client, publishPacket *packets.PublishPacket) error {
+	playerID := game.PlayerID(client.ID())
+
+	createItemRequest := &shared.CreateItemRequest{}
+	err := proto.Unmarshal(publishPacket.Payload, createItemRequest)
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal create item request")
+	}
+
+	switch createItemRequest.GetType() {
+	case shared.ItemType_BULLET:
+		c.game.ShootBullet(playerID)
+	}
 
 	return nil
 }

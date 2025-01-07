@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"maps"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -167,6 +169,42 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 		assert.EqualValues(t, 25, publishedState.GetPosition().GetY())
 		assert.Equal(t, shared.Status_ALIVE, publishedState.GetStatus())
 	}
+}
+
+func TestController_OnPublished_CreateItem_Bullet(t *testing.T) {
+	broker := NewBroker()
+	state := game.NewGame(30, 30)
+	controller := NewController(broker, state)
+
+	cl1 := &mockClient{id: "id1"}
+	err := controller.OnConnected(cl1, nil)
+	require.NoError(t, err)
+
+	// cl1の位置を更新する
+	state.MovePlayer(game.PlayerID("id1"), game.Position{X: 5, Y: 10}, game.DirectionRight)
+
+	// cl1からのcreate_item Bulletを受信する
+	{
+		payload, err := proto.Marshal(&shared.CreateItemRequest{
+			Type: shared.ItemType_BULLET,
+		})
+		require.NoError(t, err)
+
+		packet := &packets.PublishPacket{
+			TopicName: "create_item",
+			Payload:   payload,
+		}
+
+		err = controller.OnPublished(cl1, packet)
+		require.NoError(t, err)
+	}
+
+	// cl1の目の前に弾が追加されている
+	items := slices.Collect(maps.Values(state.GetItems()))
+	assert.Len(t, items, 1)
+	bullet := items[0]
+	assert.Equal(t, game.ItemTypeBullet, bullet.Type())
+	assert.Equal(t, game.Position{X: 6, Y: 10}, bullet.Position())
 }
 
 func TestController_OnDisconnected(t *testing.T) {
