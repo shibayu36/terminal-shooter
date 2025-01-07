@@ -127,19 +127,19 @@ func (g *Game) handleEvent(event tcell.Event) bool {
 }
 
 func (g *Game) createBullet() {
-	req := &shared.CreateItemRequest{
-		Type: shared.ItemType_BULLET,
+	req := &shared.PlayerActionRequest{
+		Type: shared.ActionType_SHOOT_BULLET,
 	}
 
 	data, err := proto.Marshal(req)
 	if err != nil {
-		log.Printf("Failed to encode create item request: %v", err)
+		log.Printf("Failed to encode player action request: %v", err)
 		return
 	}
 
-	token := g.mqtt.Publish("create_item", 0, false, data)
+	token := g.mqtt.Publish("player_action", 0, false, data)
 	if token.Wait() && token.Error() != nil {
-		log.Printf("Failed to publish create item request: %v", token.Error())
+		log.Printf("Failed to publish player action request: %v", token.Error())
 		return
 	}
 }

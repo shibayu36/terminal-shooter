@@ -171,7 +171,7 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	}
 }
 
-func TestController_OnPublished_CreateItem_Bullet(t *testing.T) {
+func TestController_OnPublished_PlayerAction_ShootBullet(t *testing.T) {
 	broker := NewBroker()
 	state := game.NewGame(30, 30)
 	controller := NewController(broker, state)
@@ -183,15 +183,15 @@ func TestController_OnPublished_CreateItem_Bullet(t *testing.T) {
 	// cl1の位置を更新する
 	state.MovePlayer(game.PlayerID("id1"), game.Position{X: 5, Y: 10}, game.DirectionRight)
 
-	// cl1からのcreate_item Bulletを受信する
+	// cl1からのplayer_action ShootBulletを受信する
 	{
-		payload, err := proto.Marshal(&shared.CreateItemRequest{
-			Type: shared.ItemType_BULLET,
+		payload, err := proto.Marshal(&shared.PlayerActionRequest{
+			Type: shared.ActionType_SHOOT_BULLET,
 		})
 		require.NoError(t, err)
 
 		packet := &packets.PublishPacket{
-			TopicName: "create_item",
+			TopicName: "player_action",
 			Payload:   payload,
 		}
 

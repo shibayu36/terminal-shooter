@@ -56,8 +56,13 @@ enum ItemType {
   BULLET = 0;
 }
 
-// アイテムを作成するリクエスト
-// クライアントから送るcreate_itemトピックのPayloadとして使う
-message CreateItemRequest {
-  ItemType type = 1;
+// プレイヤーからのアクション
+// クライアントから送るplayer_actionトピックのPayloadとして使う
+message PlayerActionRequest {
+  ActionType type = 1;
+}
+
+// プレイヤーからのアクションの種類
+enum ActionType {
+  SHOOT_BULLET = 0;
 }
