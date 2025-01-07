@@ -119,14 +119,14 @@ func (g *Game) handleEvent(event tcell.Event) bool {
 			g.movePlayer(shared.Direction_DOWN)
 		case tcell.KeyRune:
 			if ev.Rune() == ' ' {
-				g.createBullet()
+				g.shootBullet()
 			}
 		}
 	}
 	return false
 }
 
-func (g *Game) createBullet() {
+func (g *Game) shootBullet() {
 	req := &shared.PlayerActionRequest{
 		Type: shared.ActionType_SHOOT_BULLET,
 	}
