@@ -140,6 +140,7 @@ func (c *Controller) onReceiveCreateItem(client Client, publishPacket *packets.P
 		return errors.Wrap(err, "failed to unmarshal create item request")
 	}
 
+	//nolint:gocritic // GetType()が増えることを見越してsingleCaseSwitchをignore
 	switch createItemRequest.GetType() {
 	case shared.ItemType_BULLET:
 		c.game.ShootBullet(playerID)
