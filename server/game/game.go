@@ -38,9 +38,11 @@ func NewGame(width, height int) *Game {
 // ゲーム状態を更新するループを開始する
 // アイテムが何らか更新されたことを通知するチャネルを返す
 func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
-	// TODO: itemsUpdateChのcloseを行う
 	itemsUpdatedCh := make(chan struct{})
+
 	go func() {
+		defer close(itemsUpdatedCh)
+
 		ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
 		defer ticker.Stop()
 		for {
