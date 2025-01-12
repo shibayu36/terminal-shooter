@@ -7,10 +7,11 @@ import (
 
 // MessageStats はメッセージの配信レートを計算・管理する構造体
 type MessageStats struct {
-	mu       sync.RWMutex
 	count    int
 	lastTime time.Time
 	rate     float64
+
+	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
 // メッセージを受信したことを記録する

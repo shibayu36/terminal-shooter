@@ -318,7 +318,9 @@ func Run() error {
 		players:    make(map[string]Player),
 		items:      make(map[string]Item),
 		messageStats: MessageStats{
+			count:    0,
 			lastTime: time.Now(),
+			rate:     0,
 		},
 	}
 
