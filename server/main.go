@@ -22,6 +22,7 @@ func main() {
 	}
 }
 
+//nolint:funlen
 func run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -82,9 +83,10 @@ func run() error {
 	}
 
 	{
-		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
 		if err := metricsServer.Shutdown(ctx); err != nil {
-			return err
+			panic(err)
 		}
 	}
 

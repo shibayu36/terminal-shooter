@@ -32,6 +32,7 @@ linters-settings:
       - '.+/shared\.PlayerState$'
       - '.+/shared\.ItemState$'
       - '.+/shared\.PlayerActionRequest$'
+      - '.+/prometheus\..+Opts$'
   varnamelen:
     ignore-names:
       - dx
@@ -63,6 +64,9 @@ issues:
     - path: shared/proto/*.pb.go
       linters:
         - all
+    - path: server/stats/metrics.go
+      linters:
+        - gochecknoglobals
 
 run:
   timeout: 5m
