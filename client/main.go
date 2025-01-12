@@ -317,6 +317,9 @@ func Run() error {
 		height:     30,
 		players:    make(map[string]Player),
 		items:      make(map[string]Item),
+		messageStats: MessageStats{
+			lastTime: time.Now(),
+		},
 	}
 
 	// プレイヤーをwidthとheightの範囲内でランダムに配置
