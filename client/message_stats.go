@@ -41,12 +41,8 @@ func (m *MessageStats) RecordMessage(msg mqtt.Message) {
 func (m *MessageStats) Calculate() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	now := time.Now()
-	if m.lastTime.IsZero() {
-		m.lastTime = now
-		return
-	}
 
+	now := time.Now()
 	duration := now.Sub(m.lastTime).Seconds()
 	if duration >= 1.0 { // 1秒以上経過している場合に計算
 		m.rate = float64(m.count) / duration
