@@ -31,6 +31,38 @@ type Item struct {
 	Position Position
 }
 
+type MessageStats struct {
+	count    int
+	lastTime time.Time
+	rate     float64
+}
+
+// メッセージを受信したことを記録する
+func (m *MessageStats) RecordMessage() {
+	m.count++
+}
+
+// メッセージレートを計算する
+func (m *MessageStats) Calculate() {
+	now := time.Now()
+	if m.lastTime.IsZero() {
+		m.lastTime = now
+		return
+	}
+
+	duration := now.Sub(m.lastTime).Seconds()
+	if duration >= 1.0 { // 1秒以上経過している場合に計算
+		m.rate = float64(m.count) / duration
+		m.count = 0
+		m.lastTime = now
+	}
+}
+
+// 現在のレートを取得する
+func (m *MessageStats) Rate() float64 {
+	return m.rate
+}
+
 type Game struct {
 	mqtt mqtt.Client
 
@@ -42,12 +74,7 @@ type Game struct {
 	width      int
 	height     int
 
-	// serverから配信された統計情報を表示する
-	messageStats struct {
-		count    int
-		lastTime time.Time
-		rate     float64
-	}
+	messageStats MessageStats
 }
 
 func (g *Game) publishMyState() {
@@ -242,7 +269,7 @@ func (g *Game) getMyPlayer() Player {
 
 func (g *Game) handleMessage(message mqtt.Message) {
 	// メッセージカウントを増やす
-	g.messageStats.count++
+	g.messageStats.RecordMessage()
 
 	switch message.Topic() {
 	case "player_state":
@@ -287,22 +314,6 @@ func (g *Game) handleMessage(message mqtt.Message) {
 				Y: int(itemState.GetPosition().GetY()),
 			},
 		}
-	}
-}
-
-// メッセージレートを計算する関数を追加
-func (g *Game) calculateMessageRate() {
-	now := time.Now()
-	if g.messageStats.lastTime.IsZero() {
-		g.messageStats.lastTime = now
-		return
-	}
-
-	duration := now.Sub(g.messageStats.lastTime).Seconds()
-	if duration >= 1.0 { // 1秒以上経過している場合に計算
-		g.messageStats.rate = float64(g.messageStats.count) / duration
-		g.messageStats.count = 0
-		g.messageStats.lastTime = now
 	}
 }
 
@@ -380,7 +391,7 @@ func Run() error {
 		case message := <-messageChan:
 			game.handleMessage(message)
 		case <-ticker.C:
-			game.calculateMessageRate()
+			game.messageStats.Calculate()
 			game.draw()
 		}
 	}
