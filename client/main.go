@@ -42,7 +42,7 @@ type Game struct {
 	width      int
 	height     int
 
-	messageStats MessageStats
+	messageStats *MessageStats
 }
 
 func (g *Game) publishMyState() {
@@ -313,18 +313,14 @@ func Run() error {
 	defer client.Disconnect(250)
 
 	game := &Game{
-		mqtt:       client,
-		myPlayerID: clientID,
-		screen:     screen,
-		width:      30,
-		height:     30,
-		players:    make(map[string]Player),
-		items:      make(map[string]Item),
-		messageStats: MessageStats{
-			count:    0,
-			lastTime: time.Now(),
-			rate:     0,
-		},
+		mqtt:         client,
+		myPlayerID:   clientID,
+		screen:       screen,
+		width:        30,
+		height:       30,
+		players:      make(map[string]Player),
+		items:        make(map[string]Item),
+		messageStats: NewMessageStats(),
 	}
 
 	// プレイヤーをwidthとheightの範囲内でランダムに配置

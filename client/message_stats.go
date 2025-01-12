@@ -18,6 +18,17 @@ type MessageStats struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
+// 新しいMessageStats構造体を作成
+func NewMessageStats() *MessageStats {
+	return &MessageStats{
+		count:     0,
+		bytes:     0,
+		lastTime:  time.Now(),
+		rate:      0,
+		bytesRate: 0,
+	}
+}
+
 // メッセージを受信したことを記録する
 func (m *MessageStats) RecordMessage(msg mqtt.Message) {
 	m.mu.Lock()
