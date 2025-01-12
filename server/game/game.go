@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shibayu36/terminal-shooter/server/stats"
 	"github.com/shibayu36/terminal-shooter/shared"
 )
 
@@ -48,7 +49,9 @@ func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 		for {
 			select {
 			case <-ticker.C:
+				start := time.Now()
 				g.update(itemsUpdatedCh)
+				stats.GameLoopDuration.Observe(time.Since(start).Seconds())
 			case <-ctx.Done():
 				return
 			}

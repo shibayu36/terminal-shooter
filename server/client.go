@@ -6,6 +6,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
+	"github.com/shibayu36/terminal-shooter/server/stats"
 )
 
 // Client represents a connected MQTT client
@@ -36,5 +37,6 @@ func (c *client) Publish(publishPacket *packets.PublishPacket) error {
 		return errors.Wrapf(err, "failed to write publish packet to client: %s", c.id)
 	}
 
+	stats.PublishedPackets.Inc()
 	return nil
 }
