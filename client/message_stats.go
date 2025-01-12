@@ -1,9 +1,13 @@
 package main
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // MessageStats はメッセージの配信レートを計算・管理する構造体
 type MessageStats struct {
+	mu       sync.RWMutex
 	count    int
 	lastTime time.Time
 	rate     float64
@@ -11,11 +15,15 @@ type MessageStats struct {
 
 // メッセージを受信したことを記録する
 func (m *MessageStats) RecordMessage() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.count++
 }
 
 // メッセージレートを計算する
 func (m *MessageStats) Calculate() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	now := time.Now()
 	if m.lastTime.IsZero() {
 		m.lastTime = now
@@ -32,5 +40,7 @@ func (m *MessageStats) Calculate() {
 
 // 現在のレートを取得する
 func (m *MessageStats) Rate() float64 {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.rate
 }
