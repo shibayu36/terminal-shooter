@@ -4,11 +4,14 @@ import (
 	"context"
 	"log/slog"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/cockroachdb/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shibayu36/terminal-shooter/server/game"
 )
 
@@ -59,11 +62,30 @@ func run() error {
 		}
 	}()
 
+	// Prometheusメトリクスサーバーの起動
+	metricsServer := &http.Server{
+		Addr:    ":2112",
+		Handler: promhttp.Handler(),
+	}
+	go func() {
+		err := metricsServer.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			panic(err)
+		}
+	}()
+
 	// サーバーが中断されるまで実行
 	<-ctx.Done()
 
 	if err := server.Shutdown(10 * time.Second); err != nil {
 		return err
+	}
+
+	{
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+		if err := metricsServer.Shutdown(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil

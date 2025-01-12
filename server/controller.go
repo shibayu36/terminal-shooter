@@ -8,6 +8,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 	"github.com/shibayu36/terminal-shooter/server/game"
+	"github.com/shibayu36/terminal-shooter/server/stats"
 	"github.com/shibayu36/terminal-shooter/shared"
 	"google.golang.org/protobuf/proto"
 )
@@ -27,6 +28,8 @@ func NewController(broker *Broker, game *game.Game) *Controller {
 func (c *Controller) OnConnected(client Client, _ *packets.ConnectPacket) error {
 	c.broker.AddClient(client)
 	c.game.AddPlayer(game.PlayerID(client.ID()))
+
+	stats.ActiveClients.Inc()
 
 	// Player状態を出力
 	slog.Info("all players", "players", c.game.String())
@@ -73,6 +76,8 @@ func (c *Controller) OnPublished(client Client, publishPacket *packets.PublishPa
 func (c *Controller) OnDisconnected(client Client) error {
 	slog.Info("client disconnected", "client_id", client.ID())
 	c.broker.RemoveClient(client)
+
+	stats.ActiveClients.Dec()
 
 	c.game.RemovePlayer(game.PlayerID(client.ID()))
 
