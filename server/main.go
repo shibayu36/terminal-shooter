@@ -64,6 +64,7 @@ func run() error {
 	}()
 
 	// Prometheusメトリクスサーバーの起動
+	//nolint:exhaustruct,gosec
 	metricsServer := &http.Server{
 		Addr:    ":2112",
 		Handler: promhttp.Handler(),
