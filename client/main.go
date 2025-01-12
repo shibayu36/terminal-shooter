@@ -220,7 +220,7 @@ func (g *Game) draw() {
 	}
 
 	// メッセージレートを画面下部に表示
-	rateStr := fmt.Sprintf("Messages: %.1f/s", g.messageStats.rate)
+	rateStr := fmt.Sprintf("Recv Msgs: %.1f/s", g.messageStats.Rate())
 	style := tcell.StyleDefault.
 		Foreground(tcell.ColorWhite)
 
