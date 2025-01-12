@@ -219,12 +219,15 @@ func (g *Game) draw() {
 		)
 	}
 
-	// メッセージレートを画面下部に表示
-	rateStr := fmt.Sprintf("Recv Msgs: %.1f/s", g.messageStats.Rate())
+	// メッセージレートとバイトレートを画面下部に表示
+	statsStr := fmt.Sprintf("Msgs: %.1f/s, KB: %.1f/s",
+		g.messageStats.Rate(),
+		g.messageStats.BytesRate()/1024,
+	)
 	style := tcell.StyleDefault.
 		Foreground(tcell.ColorWhite)
 
-	for i, r := range []rune(rateStr) {
+	for i, r := range []rune(statsStr) {
 		g.screen.SetContent(i, g.height, r, nil, style)
 	}
 
@@ -236,8 +239,8 @@ func (g *Game) getMyPlayer() Player {
 }
 
 func (g *Game) handleMessage(message mqtt.Message) {
-	// メッセージカウントを増やす
-	g.messageStats.RecordMessage()
+	// メッセージの統計情報を記録
+	g.messageStats.RecordMessage(message)
 
 	switch message.Topic() {
 	case "player_state":
