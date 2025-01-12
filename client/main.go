@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -40,6 +41,8 @@ type Game struct {
 	items      map[string]Item
 	width      int
 	height     int
+
+	messageStats *MessageStats
 }
 
 func (g *Game) publishMyState() {
@@ -216,6 +219,18 @@ func (g *Game) draw() {
 		)
 	}
 
+	// メッセージレートとバイトレートを画面下部に表示
+	statsStr := fmt.Sprintf("Msgs: %.1f/s, KB: %.1f/s",
+		g.messageStats.Rate(),
+		g.messageStats.BytesRate()/1024,
+	)
+	style := tcell.StyleDefault.
+		Foreground(tcell.ColorWhite)
+
+	for i, r := range []rune(statsStr) {
+		g.screen.SetContent(i, g.height, r, nil, style)
+	}
+
 	g.screen.Show()
 }
 
@@ -224,6 +239,9 @@ func (g *Game) getMyPlayer() Player {
 }
 
 func (g *Game) handleMessage(message mqtt.Message) {
+	// メッセージの統計情報を記録
+	g.messageStats.RecordMessage(message)
+
 	switch message.Topic() {
 	case "player_state":
 		playerState := &shared.PlayerState{}
@@ -295,13 +313,14 @@ func Run() error {
 	defer client.Disconnect(250)
 
 	game := &Game{
-		mqtt:       client,
-		myPlayerID: clientID,
-		screen:     screen,
-		width:      30,
-		height:     30,
-		players:    make(map[string]Player),
-		items:      make(map[string]Item),
+		mqtt:         client,
+		myPlayerID:   clientID,
+		screen:       screen,
+		width:        30,
+		height:       30,
+		players:      make(map[string]Player),
+		items:        make(map[string]Item),
+		messageStats: NewMessageStats(),
 	}
 
 	// プレイヤーをwidthとheightの範囲内でランダムに配置
@@ -344,6 +363,7 @@ func Run() error {
 		case message := <-messageChan:
 			game.handleMessage(message)
 		case <-ticker.C:
+			game.messageStats.Calculate()
 			game.draw()
 		}
 	}
