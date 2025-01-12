@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/eclipse/paho.mqtt.golang/packets"
@@ -172,6 +173,11 @@ func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan
 }
 
 func (c *Controller) publishItemStates() {
+	start := time.Now()
+	defer func() {
+		stats.PublishItemStatesDuration.Observe(time.Since(start).Seconds())
+	}()
+
 	// Activeなアイテムを送信する
 	for _, item := range c.game.GetItems() {
 		itemState := &shared.ItemState{
