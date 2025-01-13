@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/shibayu36/terminal-shooter/shared"
 )
@@ -19,16 +20,43 @@ type Player struct {
 	Position  Position
 	Direction Direction
 	Status    PlayerStatus
+
+	mu sync.RWMutex `exhaustruct:"optional"`
+}
+
+func (p *Player) Move(position Position, direction Direction) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.Status == PlayerStatusDead {
+		// deadの場合は移動できない
+		return
+	}
+	p.Position = position
+	p.Direction = direction
+}
+
+func (p *Player) UpdateStatus(status PlayerStatus) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.Status == PlayerStatusDead {
+		// deadの場合は更新できない
+		return
+	}
+	p.Status = status
 }
 
 // プレイヤーの前方の座標を取得する
 func (p *Player) FowardPosition() Position {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	dx, dy := p.Direction.ToVector()
 	return Position{X: p.Position.X + dx, Y: p.Position.Y + dy}
 }
 
 // プレイヤーの状態をshared.PlayerStateに変換する
 func (p *Player) ToSharedPlayerState() *shared.PlayerState {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return &shared.PlayerState{
 		PlayerId: string(p.PlayerID),
 		Position: &shared.Position{
