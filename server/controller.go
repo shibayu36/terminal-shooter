@@ -156,15 +156,17 @@ func (c *Controller) onReceivePlayerAction(client Client, publishPacket *packets
 }
 
 // StartPublishLoop ゲームの状態を定期的にpublishするループを開始する
-func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan struct{}) {
+func (c *Controller) StartPublishLoop(ctx context.Context, updatedCh <-chan game.UpdatedResult) {
 	go func() {
 		for {
 			select {
-			case _, ok := <-itemsUpdatedCh:
+			case updatedResult, ok := <-updatedCh:
 				if !ok {
 					return
 				}
-				c.publishItemStates()
+				if updatedResult.Type == game.UpdatedResultTypeItemsUpdated {
+					c.publishItemStates()
+				}
 			case <-ctx.Done():
 				return
 			}

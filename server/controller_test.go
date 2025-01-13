@@ -264,13 +264,13 @@ func TestController_StartPublishLoop(t *testing.T) {
 		err = controller.OnConnected(cl2, nil)
 		require.NoError(t, err)
 
-		itemsUpdatedCh := make(chan struct{})
-		controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
+		updatedCh := make(chan game.UpdatedResult)
+		controller.StartPublishLoop(context.Background(), updatedCh)
 
 		bulletID1 := state.AddBullet(game.Position{X: 1, Y: 2}, game.DirectionRight)
 		bulletID2 := state.AddBullet(game.Position{X: 2, Y: 3}, game.DirectionUp)
 
-		itemsUpdatedCh <- struct{}{}
+		updatedCh <- game.UpdatedResult{Type: game.UpdatedResultTypeItemsUpdated}
 
 		// TODO: 待つための良い手法があれば変更
 		time.Sleep(10 * time.Millisecond)
@@ -312,10 +312,10 @@ func TestController_StartPublishLoop(t *testing.T) {
 		bulletID2 := state.AddBullet(game.Position{X: 2, Y: 3}, game.DirectionUp)
 		state.RemoveItem(bulletID1)
 
-		itemsUpdatedCh := make(chan struct{})
-		controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
+		updatedCh := make(chan game.UpdatedResult)
+		controller.StartPublishLoop(context.Background(), updatedCh)
 
-		itemsUpdatedCh <- struct{}{}
+		updatedCh <- game.UpdatedResult{Type: game.UpdatedResultTypeItemsUpdated}
 
 		// TODO: 待つための良い手法があれば変更
 		time.Sleep(10 * time.Millisecond)

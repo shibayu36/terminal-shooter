@@ -88,52 +88,52 @@ func Test_Game_StartUpdateLoop(t *testing.T) {
 
 func Test_Game_update(t *testing.T) {
 	t.Run("弾が動く", func(t *testing.T) {
-		itemsUpdatedCh := make(chan struct{}, 10)
+		updatedCh := make(chan UpdatedResult, 10)
 		game := NewGame(30, 30)
 
 		// 弾を追加
 		bulletID1 := game.AddBullet(Position{X: 3, Y: 8}, DirectionLeft)
 		// 2回動かす
-		game.update(itemsUpdatedCh)
-		game.update(itemsUpdatedCh)
+		game.update(updatedCh)
+		game.update(updatedCh)
 
 		// 弾をもう一つ追加
 		bulletID2 := game.AddBullet(Position{X: 1, Y: 2}, DirectionUp)
 
 		// 28回動かすと、bullet1だけ動く
 		for range 28 {
-			game.update(itemsUpdatedCh)
+			game.update(updatedCh)
 		}
 		assert.Equal(t, Position{X: 2, Y: 8}, game.Items[bulletID1].Position())
 		assert.Equal(t, Position{X: 1, Y: 2}, game.Items[bulletID2].Position())
 		// bullet1が更新されたので更新件数が1件になる
-		assert.Len(t, itemsUpdatedCh, 1)
+		assert.Len(t, updatedCh, 1)
 
 		// さらに2回動かすと、bullet2が動く
-		game.update(itemsUpdatedCh)
-		game.update(itemsUpdatedCh)
+		game.update(updatedCh)
+		game.update(updatedCh)
 		assert.Equal(t, Position{X: 2, Y: 8}, game.Items[bulletID1].Position())
 		assert.Equal(t, Position{X: 1, Y: 1}, game.Items[bulletID2].Position())
 		// bullet2が更新されたので更新件数が2件になる
-		assert.Len(t, itemsUpdatedCh, 2)
+		assert.Len(t, updatedCh, 2)
 	})
 
 	t.Run("アイテムが盤面外に出たら削除される", func(t *testing.T) {
-		itemsUpdatedCh := make(chan struct{}, 10)
+		updatedCh := make(chan UpdatedResult, 10)
 		game := NewGame(30, 30)
 
 		bulletID := game.AddBullet(Position{X: 1, Y: 0}, DirectionLeft)
 
 		// 30回更新したタイミングではまだ盤面上
 		for range 30 {
-			game.update(itemsUpdatedCh)
+			game.update(updatedCh)
 		}
 		assert.Len(t, game.GetItems(), 1)
 		assert.Equal(t, Position{X: 0, Y: 0}, game.GetItems()[bulletID].Position())
 
 		// さらに30回更新したら盤面外に出るので削除される
 		for range 30 {
-			game.update(itemsUpdatedCh)
+			game.update(updatedCh)
 		}
 		assert.Empty(t, game.GetItems())
 		assert.Len(t, game.GetRemovedItems(), 1)
@@ -143,7 +143,7 @@ func Test_Game_update(t *testing.T) {
 
 func Test_Game_update_checkCollisions(t *testing.T) {
 	t.Run("弾がプレイヤーに当たったらプレイヤーがdeadになり、弾は消える", func(t *testing.T) {
-		itemsUpdatedCh := make(chan struct{}, 10)
+		updatedCh := make(chan UpdatedResult, 10)
 
 		game := NewGame(30, 30)
 
@@ -152,7 +152,7 @@ func Test_Game_update_checkCollisions(t *testing.T) {
 		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
 		bulletID := game.AddBullet(Position{X: 1, Y: 3}, DirectionRight)
 
-		game.update(itemsUpdatedCh)
+		game.update(updatedCh)
 
 		// まだ衝突していない
 		assert.Equal(t, PlayerStatusAlive, game.GetPlayers()[playerID].Status)
@@ -161,7 +161,7 @@ func Test_Game_update_checkCollisions(t *testing.T) {
 
 		// 29回動くと弾が当たる
 		for range 29 {
-			game.update(itemsUpdatedCh)
+			game.update(updatedCh)
 		}
 		assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status)
 		assert.Empty(t, game.GetItems())

@@ -42,8 +42,8 @@ func run() error {
 		}
 	}()
 
-	itemsUpdatedCh := gameState.StartUpdateLoop(ctx)
-	controller.StartPublishLoop(ctx, itemsUpdatedCh)
+	updatedCh := gameState.StartUpdateLoop(ctx)
+	controller.StartPublishLoop(ctx, updatedCh)
 
 	ticker := time.NewTicker(1234 * time.Millisecond)
 	defer ticker.Stop()

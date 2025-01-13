@@ -36,13 +36,24 @@ func NewGame(width, height int) *Game {
 	}
 }
 
+type UpdatedResultType string
+
+const (
+	UpdatedResultTypeItemsUpdated   UpdatedResultType = "items_updated"
+	UpdatedResultTypePlayersUpdated UpdatedResultType = "players_updated"
+)
+
+type UpdatedResult struct {
+	Type UpdatedResultType
+}
+
 // ゲーム状態を更新するループを開始する
 // アイテムが何らか更新されたことを通知するチャネルを返す
-func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
-	itemsUpdatedCh := make(chan struct{})
+func (g *Game) StartUpdateLoop(ctx context.Context) <-chan UpdatedResult {
+	updatedCh := make(chan UpdatedResult)
 
 	go func() {
-		defer close(itemsUpdatedCh)
+		defer close(updatedCh)
 
 		ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
 		defer ticker.Stop()
@@ -50,7 +61,7 @@ func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 			select {
 			case <-ticker.C:
 				start := time.Now()
-				g.update(itemsUpdatedCh)
+				g.update(updatedCh)
 				stats.GameLoopDuration.Observe(time.Since(start).Seconds())
 			case <-ctx.Done():
 				return
@@ -58,11 +69,11 @@ func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 		}
 	}()
 
-	return itemsUpdatedCh
+	return updatedCh
 }
 
 // ゲーム状態を更新する
-func (g *Game) update(updatedItemsCh chan<- struct{}) {
+func (g *Game) update(updatedCh chan<- UpdatedResult) {
 	items := g.GetItems()
 
 	updatedItems := []Item{}
@@ -81,7 +92,7 @@ func (g *Game) update(updatedItemsCh chan<- struct{}) {
 	g.checkCollisions()
 
 	if len(updatedItems) > 0 {
-		updatedItemsCh <- struct{}{}
+		updatedCh <- UpdatedResult{Type: UpdatedResultTypeItemsUpdated}
 	}
 }
 
