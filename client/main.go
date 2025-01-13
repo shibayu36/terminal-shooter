@@ -335,6 +335,7 @@ func Run() error {
 		//nolint:gosec
 		Position:  Position{X: rand.Intn(game.width), Y: rand.Intn(game.height)},
 		Direction: shared.Direction_UP,
+		Status:    shared.Status_ALIVE,
 	}
 
 	// screenからのイベントを受け取る
