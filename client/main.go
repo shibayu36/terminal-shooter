@@ -23,6 +23,7 @@ type Player struct {
 	ID        string
 	Position  Position
 	Direction shared.Direction
+	Status    shared.Status
 }
 
 type Item struct {
@@ -147,8 +148,12 @@ func (g *Game) shootBullet() {
 	}
 }
 
-func getDirectionRune(direction shared.Direction) rune {
-	switch direction {
+func getPlayerRune(player Player) rune {
+	if player.Status == shared.Status_DEAD {
+		return 'x'
+	}
+
+	switch player.Direction {
 	case shared.Direction_UP:
 		return '^'
 	case shared.Direction_DOWN:
@@ -195,7 +200,7 @@ func (g *Game) draw() {
 		g.screen.SetContent(
 			player.Position.X,
 			player.Position.Y,
-			getDirectionRune(player.Direction),
+			getPlayerRune(player),
 			nil,
 			style,
 		)
@@ -263,6 +268,7 @@ func (g *Game) handleMessage(message mqtt.Message) {
 				Y: int(playerState.GetPosition().GetY()),
 			},
 			Direction: playerState.GetDirection(),
+			Status:    playerState.GetStatus(),
 		}
 	case "item_state":
 		itemState := &shared.ItemState{}
