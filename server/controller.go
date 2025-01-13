@@ -164,17 +164,21 @@ func (c *Controller) StartPublishLoop(ctx context.Context, updatedCh <-chan game
 				if !ok {
 					return
 				}
-				switch updatedResult.Type {
-				case game.UpdatedResultTypeItemsUpdated:
-					c.publishItemStates()
-				case game.UpdatedResultTypePlayersUpdated:
-					c.publishPlayerStates()
-				}
+				c.publishStates(updatedResult)
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
+}
+
+func (c *Controller) publishStates(updatedResult game.UpdatedResult) {
+	switch updatedResult.Type {
+	case game.UpdatedResultTypeItemsUpdated:
+		c.publishItemStates()
+	case game.UpdatedResultTypePlayersUpdated:
+		c.publishPlayerStates()
+	}
 }
 
 func (c *Controller) publishItemStates() {
