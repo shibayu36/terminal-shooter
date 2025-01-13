@@ -2,11 +2,19 @@ package game
 
 import "github.com/shibayu36/terminal-shooter/shared"
 
+type PlayerStatus string
+
+const (
+	PlayerStatusAlive PlayerStatus = "alive"
+	PlayerStatusDead  PlayerStatus = "dead"
+)
+
 // プレイヤーの状態を管理する
 type Player struct {
 	PlayerID  PlayerID
 	Position  Position
 	Direction Direction
+	Status    PlayerStatus
 }
 
 // プレイヤーの前方の座標を取得する

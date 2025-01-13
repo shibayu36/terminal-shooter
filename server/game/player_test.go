@@ -19,7 +19,7 @@ func Test_Player_FowardPosition(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		player := &Player{Position: tc.position, Direction: tc.direction}
+		player := &Player{Position: tc.position, Direction: tc.direction, Status: PlayerStatusAlive}
 		assert.Equal(t, tc.expected, player.FowardPosition())
 	}
 }

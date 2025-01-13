@@ -51,6 +51,7 @@ func TestController_OnConnected(t *testing.T) {
 		PlayerID:  game.PlayerID("id1"),
 		Position:  game.Position{X: 0, Y: 0},
 		Direction: game.DirectionUp,
+		Status:    game.PlayerStatusAlive,
 	}, state.GetPlayers()[game.PlayerID("id1")], "cl1が追加された")
 	assert.Equal(t, broker.clients[cl1.id], cl1, "cl1がbrokerに追加された")
 
@@ -61,6 +62,7 @@ func TestController_OnConnected(t *testing.T) {
 		PlayerID:  game.PlayerID("id2"),
 		Position:  game.Position{X: 0, Y: 0},
 		Direction: game.DirectionUp,
+		Status:    game.PlayerStatusAlive,
 	}, state.GetPlayers()[game.PlayerID("id2")], "cl2が追加された")
 	assert.Equal(t, broker.clients[cl2.id], cl2, "cl2がbrokerに追加された")
 }
