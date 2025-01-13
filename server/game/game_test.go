@@ -156,7 +156,7 @@ func Test_Game_update(t *testing.T) {
 		assert.Equal(t, PlayerStatusAlive, game.GetPlayers()[playerID].Status)
 		assert.Len(t, game.GetItems(), 1)
 		assert.Empty(t, game.GetRemovedItems())
-		assert.Len(t, updatedCh, 0)
+		assert.Empty(t, updatedCh)
 
 		// 29回動くと弾が当たる
 		for range 29 {
