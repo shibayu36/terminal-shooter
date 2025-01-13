@@ -28,10 +28,10 @@ var GameLoopDuration = promauto.NewHistogram(prometheus.HistogramOpts{
 	},
 })
 
-// アイテム状態の配信処理時間
-var PublishItemStatesDuration = promauto.NewHistogram(prometheus.HistogramOpts{
-	Name: "terminal_shooter_publish_item_states_duration_seconds",
-	Help: "Time spent publishing item states",
+// プレイヤーやアイテムの状態の配信処理時間
+var PublishStatesDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+	Name: "terminal_shooter_publish_states_duration_seconds",
+	Help: "Time spent publishing states",
 	Buckets: []float64{
 		0.0001, 0.001, 0.005, 0.01, 0.015,
 		0.016667,

@@ -47,21 +47,19 @@ func TestController_OnConnected(t *testing.T) {
 	cl1 := &mockClient{id: "id1"}
 	err := controller.OnConnected(cl1, nil)
 	require.NoError(t, err)
-	assert.Equal(t, &game.Player{
-		PlayerID:  game.PlayerID("id1"),
-		Position:  game.Position{X: 0, Y: 0},
-		Direction: game.DirectionUp,
-	}, state.GetPlayers()[game.PlayerID("id1")], "cl1が追加された")
+	p1 := state.GetPlayers()[game.PlayerID("id1")]
+	assert.Equal(t, game.Position{X: 0, Y: 0}, p1.Position())
+	assert.Equal(t, game.DirectionUp, p1.Direction())
+	assert.Equal(t, game.PlayerStatusAlive, p1.Status())
 	assert.Equal(t, broker.clients[cl1.id], cl1, "cl1がbrokerに追加された")
 
 	cl2 := &mockClient{id: "id2"}
 	err = controller.OnConnected(cl2, nil)
 	require.NoError(t, err)
-	assert.Equal(t, &game.Player{
-		PlayerID:  game.PlayerID("id2"),
-		Position:  game.Position{X: 0, Y: 0},
-		Direction: game.DirectionUp,
-	}, state.GetPlayers()[game.PlayerID("id2")], "cl2が追加された")
+	p2 := state.GetPlayers()[game.PlayerID("id2")]
+	assert.Equal(t, game.Position{X: 0, Y: 0}, p2.Position())
+	assert.Equal(t, game.DirectionUp, p2.Direction())
+	assert.Equal(t, game.PlayerStatusAlive, p2.Status())
 	assert.Equal(t, broker.clients[cl2.id], cl2, "cl2がbrokerに追加された")
 }
 
@@ -154,9 +152,9 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	}
 
 	// cl3の位置が更新されている
-	assert.EqualValues(t, 15, state.GetPlayers()[game.PlayerID("id3")].Position.X)
-	assert.EqualValues(t, 25, state.GetPlayers()[game.PlayerID("id3")].Position.Y)
-	assert.Equal(t, game.DirectionRight, state.GetPlayers()[game.PlayerID("id3")].Direction)
+	assert.EqualValues(t, 15, state.GetPlayers()[game.PlayerID("id3")].Position().X)
+	assert.EqualValues(t, 25, state.GetPlayers()[game.PlayerID("id3")].Position().Y)
+	assert.Equal(t, game.DirectionRight, state.GetPlayers()[game.PlayerID("id3")].Direction())
 
 	// cl1, cl2, cl3にそれぞれ位置が送信されている
 	for _, cl := range []*mockClient{cl1, cl2, cl3} {
@@ -262,13 +260,13 @@ func TestController_StartPublishLoop(t *testing.T) {
 		err = controller.OnConnected(cl2, nil)
 		require.NoError(t, err)
 
-		itemsUpdatedCh := make(chan struct{})
-		controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
+		updatedCh := make(chan game.UpdatedResult)
+		controller.StartPublishLoop(context.Background(), updatedCh)
 
 		bulletID1 := state.AddBullet(game.Position{X: 1, Y: 2}, game.DirectionRight)
 		bulletID2 := state.AddBullet(game.Position{X: 2, Y: 3}, game.DirectionUp)
 
-		itemsUpdatedCh <- struct{}{}
+		updatedCh <- game.UpdatedResult{Type: game.UpdatedResultTypeItemsUpdated}
 
 		// TODO: 待つための良い手法があれば変更
 		time.Sleep(10 * time.Millisecond)
@@ -310,10 +308,10 @@ func TestController_StartPublishLoop(t *testing.T) {
 		bulletID2 := state.AddBullet(game.Position{X: 2, Y: 3}, game.DirectionUp)
 		state.RemoveItem(bulletID1)
 
-		itemsUpdatedCh := make(chan struct{})
-		controller.StartPublishLoop(context.Background(), itemsUpdatedCh)
+		updatedCh := make(chan game.UpdatedResult)
+		controller.StartPublishLoop(context.Background(), updatedCh)
 
-		itemsUpdatedCh <- struct{}{}
+		updatedCh <- game.UpdatedResult{Type: game.UpdatedResultTypeItemsUpdated}
 
 		// TODO: 待つための良い手法があれば変更
 		time.Sleep(10 * time.Millisecond)
@@ -336,5 +334,50 @@ func TestController_StartPublishLoop(t *testing.T) {
 
 		// 削除送信が成功したので、stateから削除済みアイテムがクリアされている
 		assert.NotContains(t, state.GetRemovedItems(), bulletID1)
+	})
+
+	t.Run("プレイヤーの更新を送信できる", func(t *testing.T) {
+		broker := NewBroker()
+		state := game.NewGame(30, 30)
+		controller := NewController(broker, state)
+
+		cl1 := &mockClient{id: "id1"}
+		err := controller.OnConnected(cl1, nil)
+		require.NoError(t, err)
+		state.MovePlayer(game.PlayerID("id1"), game.Position{X: 5, Y: 10}, game.DirectionRight)
+
+		cl2 := &mockClient{id: "id2"}
+		err = controller.OnConnected(cl2, nil)
+		require.NoError(t, err)
+		state.MovePlayer(game.PlayerID("id2"), game.Position{X: 10, Y: 20}, game.DirectionLeft)
+
+		updatedCh := make(chan game.UpdatedResult)
+		controller.StartPublishLoop(context.Background(), updatedCh)
+
+		updatedCh <- game.UpdatedResult{Type: game.UpdatedResultTypePlayersUpdated}
+
+		// TODO: 待つための良い手法があれば変更
+		time.Sleep(10 * time.Millisecond)
+
+		// cl1, cl2にそれぞれプレイヤーの更新が送信されている
+		for _, cl := range []*mockClient{cl1, cl2} {
+			require.Len(t, cl.Published(), 2)
+			assert.Equal(t, "player_state", cl.Published()[0].TopicName)
+			assert.Equal(t, "player_state", cl.Published()[1].TopicName)
+
+			idToState := map[game.PlayerID]*shared.PlayerState{}
+			for _, published := range cl.Published() {
+				publishedState := &shared.PlayerState{}
+				err := proto.Unmarshal(published.Payload, publishedState)
+				require.NoError(t, err)
+				idToState[game.PlayerID(publishedState.GetPlayerId())] = publishedState
+			}
+
+			assert.EqualValues(t, 5, idToState["id1"].GetPosition().GetX())
+			assert.EqualValues(t, 10, idToState["id1"].GetPosition().GetY())
+
+			assert.EqualValues(t, 10, idToState["id2"].GetPosition().GetX())
+			assert.EqualValues(t, 20, idToState["id2"].GetPosition().GetY())
+		}
 	})
 }

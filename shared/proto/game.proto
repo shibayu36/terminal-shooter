@@ -48,6 +48,7 @@ enum Direction {
 // プレイヤーのステータス
 enum Status {
   ALIVE = 0;
+  DEAD = 2;
   DISCONNECTED = 1;
 }
 

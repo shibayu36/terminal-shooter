@@ -36,13 +36,24 @@ func NewGame(width, height int) *Game {
 	}
 }
 
+type UpdatedResultType string
+
+const (
+	UpdatedResultTypeItemsUpdated   UpdatedResultType = "items_updated"
+	UpdatedResultTypePlayersUpdated UpdatedResultType = "players_updated"
+)
+
+type UpdatedResult struct {
+	Type UpdatedResultType
+}
+
 // ゲーム状態を更新するループを開始する
 // アイテムが何らか更新されたことを通知するチャネルを返す
-func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
-	itemsUpdatedCh := make(chan struct{})
+func (g *Game) StartUpdateLoop(ctx context.Context) <-chan UpdatedResult {
+	updatedCh := make(chan UpdatedResult)
 
 	go func() {
-		defer close(itemsUpdatedCh)
+		defer close(updatedCh)
 
 		ticker := time.NewTicker(16700 * time.Microsecond) // 16.7ms
 		defer ticker.Stop()
@@ -50,7 +61,7 @@ func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 			select {
 			case <-ticker.C:
 				start := time.Now()
-				g.update(itemsUpdatedCh)
+				g.update(updatedCh)
 				stats.GameLoopDuration.Observe(time.Since(start).Seconds())
 			case <-ctx.Done():
 				return
@@ -58,14 +69,16 @@ func (g *Game) StartUpdateLoop(ctx context.Context) <-chan struct{} {
 		}
 	}()
 
-	return itemsUpdatedCh
+	return updatedCh
 }
 
 // ゲーム状態を更新する
-func (g *Game) update(updatedItemsCh chan<- struct{}) {
+func (g *Game) update(updatedCh chan<- UpdatedResult) {
 	items := g.GetItems()
 
 	updatedItems := []Item{}
+	updatedPlayers := []*Player{}
+
 	for _, item := range items {
 		if item.Update() {
 			updatedItems = append(updatedItems, item)
@@ -78,8 +91,30 @@ func (g *Game) update(updatedItemsCh chan<- struct{}) {
 		}
 	}
 
+	// プレイヤーとアイテムの衝突をチェックする
+	itemPosMap := make(map[Position][]Item)
+	for _, item := range g.GetItems() {
+		itemPosMap[item.Position()] = append(itemPosMap[item.Position()], item)
+	}
+
+	for _, player := range g.GetPlayers() {
+		for _, item := range itemPosMap[player.Position()] {
+			if bullet, ok := item.(*Bullet); ok {
+				g.UpdatePlayerStatus(player.PlayerID, PlayerStatusDead)
+				g.RemoveItem(bullet.ID())
+
+				updatedPlayers = append(updatedPlayers, player)
+				updatedItems = append(updatedItems, item)
+			}
+		}
+	}
+
 	if len(updatedItems) > 0 {
-		updatedItemsCh <- struct{}{}
+		updatedCh <- UpdatedResult{Type: UpdatedResultTypeItemsUpdated}
+	}
+
+	if len(updatedPlayers) > 0 {
+		updatedCh <- UpdatedResult{Type: UpdatedResultTypePlayersUpdated}
 	}
 }
 
@@ -96,8 +131,9 @@ func (g *Game) AddPlayer(playerID PlayerID) {
 	defer g.mu.Unlock()
 	g.Players[playerID] = &Player{
 		PlayerID:  playerID,
-		Position:  Position{X: 0, Y: 0},
-		Direction: DirectionUp,
+		position:  Position{X: 0, Y: 0},
+		direction: DirectionUp,
+		status:    PlayerStatusAlive,
 	}
 }
 
@@ -112,9 +148,27 @@ func (g *Game) RemovePlayer(playerID PlayerID) {
 func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direction) *Player {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	g.Players[playerID].Position = position
-	g.Players[playerID].Direction = direction
-	return g.Players[playerID]
+
+	player, ok := g.Players[playerID]
+	if !ok {
+		return nil
+	}
+	player.Move(position, direction)
+
+	return player
+}
+
+// プレイヤーのステータスを更新する
+func (g *Game) UpdatePlayerStatus(playerID PlayerID, status PlayerStatus) *Player {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	player, ok := g.Players[playerID]
+	if !ok {
+		return nil
+	}
+	player.UpdateStatus(status)
+	return player
 }
 
 // プレイヤー一覧を取得する
@@ -177,9 +231,14 @@ func (g *Game) ShootBullet(playerID PlayerID) ItemID {
 		return ItemID("")
 	}
 
+	// deadの場合は弾を発射できない
+	if player.Status() == PlayerStatusDead {
+		return ItemID("")
+	}
+
 	// プレイヤーの前方に発射する
 	position := player.FowardPosition()
-	direction := player.Direction
+	direction := player.Direction()
 
 	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
 	g.Items[bullet.ID()] = bullet
@@ -194,7 +253,7 @@ func (g *Game) String() string {
 
 	buf := bytes.NewBufferString("")
 	for playerID, player := range g.Players {
-		fmt.Fprintf(buf, "Player: %s, Position: %v\n", string(playerID), player.Position)
+		fmt.Fprintf(buf, "Player: %s, Position: %v\n", string(playerID), player.Position())
 	}
 
 	return buf.String()

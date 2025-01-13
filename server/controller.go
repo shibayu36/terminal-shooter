@@ -45,7 +45,7 @@ func (c *Controller) OnSubscribed(client Client, _ *packets.SubscribePacket) err
 			continue
 		}
 
-		sharedPlayerState := player.ToSharedPlayerState(shared.Status_ALIVE)
+		sharedPlayerState := player.ToSharedPlayerState()
 
 		payload, err := proto.Marshal(sharedPlayerState)
 		if err != nil {
@@ -123,7 +123,7 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 		direction,
 	)
 
-	payload, err := proto.Marshal(updatedPlayer.ToSharedPlayerState(shared.Status_ALIVE))
+	payload, err := proto.Marshal(updatedPlayer.ToSharedPlayerState())
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal player state")
 	}
@@ -156,15 +156,15 @@ func (c *Controller) onReceivePlayerAction(client Client, publishPacket *packets
 }
 
 // StartPublishLoop ゲームの状態を定期的にpublishするループを開始する
-func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan struct{}) {
+func (c *Controller) StartPublishLoop(ctx context.Context, updatedCh <-chan game.UpdatedResult) {
 	go func() {
 		for {
 			select {
-			case _, ok := <-itemsUpdatedCh:
+			case updatedResult, ok := <-updatedCh:
 				if !ok {
 					return
 				}
-				c.publishItemStates()
+				c.publishStates(updatedResult)
 			case <-ctx.Done():
 				return
 			}
@@ -172,12 +172,21 @@ func (c *Controller) StartPublishLoop(ctx context.Context, itemsUpdatedCh <-chan
 	}()
 }
 
-func (c *Controller) publishItemStates() {
+func (c *Controller) publishStates(updatedResult game.UpdatedResult) {
 	start := time.Now()
 	defer func() {
-		stats.PublishItemStatesDuration.Observe(time.Since(start).Seconds())
+		stats.PublishStatesDuration.Observe(time.Since(start).Seconds())
 	}()
 
+	switch updatedResult.Type {
+	case game.UpdatedResultTypeItemsUpdated:
+		c.publishItemStates()
+	case game.UpdatedResultTypePlayersUpdated:
+		c.publishPlayerStates()
+	}
+}
+
+func (c *Controller) publishItemStates() {
 	// Activeなアイテムを送信する
 	for _, item := range c.game.GetItems() {
 		itemState := &shared.ItemState{
@@ -221,5 +230,19 @@ func (c *Controller) publishItemStates() {
 
 		// Broadcastが成功したら削除アイテムは不要になる
 		c.game.ClearRemovedItem(removedItem.ID())
+	}
+}
+
+func (c *Controller) publishPlayerStates() {
+	for _, player := range c.game.GetPlayers() {
+		payload, err := proto.Marshal(player.ToSharedPlayerState())
+		if err != nil {
+			slog.Error("failed to marshal player state", "error", err)
+			continue
+		}
+		err = c.broker.Broadcast("player_state", payload)
+		if err != nil {
+			slog.Error("failed to broadcast player state", "error", err)
+		}
 	}
 }
