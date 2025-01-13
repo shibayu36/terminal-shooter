@@ -45,7 +45,7 @@ func (c *Controller) OnSubscribed(client Client, _ *packets.SubscribePacket) err
 			continue
 		}
 
-		sharedPlayerState := player.ToSharedPlayerState(shared.Status_ALIVE)
+		sharedPlayerState := player.ToSharedPlayerState()
 
 		payload, err := proto.Marshal(sharedPlayerState)
 		if err != nil {
@@ -123,7 +123,7 @@ func (c *Controller) onReceivePlayerState(client Client, publishPacket *packets.
 		direction,
 	)
 
-	payload, err := proto.Marshal(updatedPlayer.ToSharedPlayerState(shared.Status_ALIVE))
+	payload, err := proto.Marshal(updatedPlayer.ToSharedPlayerState())
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal player state")
 	}

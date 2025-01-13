@@ -1,6 +1,10 @@
 package game
 
-import "github.com/shibayu36/terminal-shooter/shared"
+import (
+	"fmt"
+
+	"github.com/shibayu36/terminal-shooter/shared"
+)
 
 type PlayerStatus string
 
@@ -24,7 +28,7 @@ func (p *Player) FowardPosition() Position {
 }
 
 // プレイヤーの状態をshared.PlayerStateに変換する
-func (p *Player) ToSharedPlayerState(status shared.Status) *shared.PlayerState {
+func (p *Player) ToSharedPlayerState() *shared.PlayerState {
 	return &shared.PlayerState{
 		PlayerId: string(p.PlayerID),
 		Position: &shared.Position{
@@ -32,6 +36,17 @@ func (p *Player) ToSharedPlayerState(status shared.Status) *shared.PlayerState {
 			Y: int32(p.Position.Y),
 		},
 		Direction: p.Direction.ToSharedDirection(),
-		Status:    status,
+		Status:    p.Status.ToSharedStatus(),
+	}
+}
+
+func (ps PlayerStatus) ToSharedStatus() shared.Status {
+	switch ps {
+	case PlayerStatusAlive:
+		return shared.Status_ALIVE
+	case PlayerStatusDead:
+		return shared.Status_DEAD
+	default:
+		panic(fmt.Sprintf("invalid player status: %s", ps))
 	}
 }
