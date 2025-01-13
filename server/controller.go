@@ -164,8 +164,11 @@ func (c *Controller) StartPublishLoop(ctx context.Context, updatedCh <-chan game
 				if !ok {
 					return
 				}
-				if updatedResult.Type == game.UpdatedResultTypeItemsUpdated {
+				switch updatedResult.Type {
+				case game.UpdatedResultTypeItemsUpdated:
 					c.publishItemStates()
+				case game.UpdatedResultTypePlayersUpdated:
+					c.publishPlayerStates()
 				}
 			case <-ctx.Done():
 				return
@@ -223,5 +226,19 @@ func (c *Controller) publishItemStates() {
 
 		// Broadcastが成功したら削除アイテムは不要になる
 		c.game.ClearRemovedItem(removedItem.ID())
+	}
+}
+
+func (c *Controller) publishPlayerStates() {
+	for _, player := range c.game.GetPlayers() {
+		payload, err := proto.Marshal(player.ToSharedPlayerState())
+		if err != nil {
+			slog.Error("failed to marshal player state", "error", err)
+			continue
+		}
+		err = c.broker.Broadcast("player_state", payload)
+		if err != nil {
+			slog.Error("failed to broadcast player state", "error", err)
+		}
 	}
 }
