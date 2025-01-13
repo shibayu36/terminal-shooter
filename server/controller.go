@@ -173,6 +173,11 @@ func (c *Controller) StartPublishLoop(ctx context.Context, updatedCh <-chan game
 }
 
 func (c *Controller) publishStates(updatedResult game.UpdatedResult) {
+	start := time.Now()
+	defer func() {
+		stats.PublishStatesDuration.Observe(time.Since(start).Seconds())
+	}()
+
 	switch updatedResult.Type {
 	case game.UpdatedResultTypeItemsUpdated:
 		c.publishItemStates()
@@ -182,11 +187,6 @@ func (c *Controller) publishStates(updatedResult game.UpdatedResult) {
 }
 
 func (c *Controller) publishItemStates() {
-	start := time.Now()
-	defer func() {
-		stats.PublishItemStatesDuration.Observe(time.Since(start).Seconds())
-	}()
-
 	// Activeなアイテムを送信する
 	for _, item := range c.game.GetItems() {
 		itemState := &shared.ItemState{
