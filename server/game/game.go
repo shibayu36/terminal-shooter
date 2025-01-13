@@ -77,6 +77,8 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 	items := g.GetItems()
 
 	updatedItems := []Item{}
+	updatedPlayers := []*Player{}
+
 	for _, item := range items {
 		if item.Update() {
 			updatedItems = append(updatedItems, item)
@@ -89,15 +91,7 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 		}
 	}
 
-	g.checkCollisions()
-
-	if len(updatedItems) > 0 {
-		updatedCh <- UpdatedResult{Type: UpdatedResultTypeItemsUpdated}
-	}
-}
-
-func (g *Game) checkCollisions() {
-	// プレイヤーとアイテムが衝突しているかどうかをチェックする
+	// プレイヤーとアイテムの衝突をチェックする
 	itemPosMap := make(map[Position][]Item)
 	for _, item := range g.GetItems() {
 		itemPosMap[item.Position()] = append(itemPosMap[item.Position()], item)
@@ -108,8 +102,19 @@ func (g *Game) checkCollisions() {
 			if bullet, ok := item.(*Bullet); ok {
 				g.UpdatePlayerStatus(player.PlayerID, PlayerStatusDead)
 				g.RemoveItem(bullet.ID())
+
+				updatedPlayers = append(updatedPlayers, player)
+				updatedItems = append(updatedItems, item)
 			}
 		}
+	}
+
+	if len(updatedItems) > 0 {
+		updatedCh <- UpdatedResult{Type: UpdatedResultTypeItemsUpdated}
+	}
+
+	if len(updatedPlayers) > 0 {
+		updatedCh <- UpdatedResult{Type: UpdatedResultTypePlayersUpdated}
 	}
 }
 

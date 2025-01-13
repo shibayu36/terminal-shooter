@@ -139,6 +139,35 @@ func Test_Game_update(t *testing.T) {
 		assert.Len(t, game.GetRemovedItems(), 1)
 		assert.NotEmpty(t, game.GetRemovedItems()[bulletID])
 	})
+
+	t.Run("プレイヤーと弾が衝突するとプレイヤーがdeadになり、弾は消え、更新が通知される", func(t *testing.T) {
+		updatedCh := make(chan UpdatedResult, 10)
+
+		game := NewGame(30, 30)
+
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
+		bulletID := game.AddBullet(Position{X: 1, Y: 3}, DirectionRight)
+
+		game.update(updatedCh)
+
+		// まだ衝突していない
+		assert.Equal(t, PlayerStatusAlive, game.GetPlayers()[playerID].Status)
+		assert.Len(t, game.GetItems(), 1)
+		assert.Empty(t, game.GetRemovedItems())
+		assert.Len(t, updatedCh, 0)
+
+		// 29回動くと弾が当たる
+		for range 29 {
+			game.update(updatedCh)
+		}
+		assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status)
+		assert.Empty(t, game.GetItems())
+		assert.Len(t, game.GetRemovedItems(), 1)
+		assert.NotEmpty(t, game.GetRemovedItems()[bulletID])
+		assert.Len(t, updatedCh, 2, "弾の更新とプレイヤーの更新の2件が通知される")
+	})
 }
 
 func Test_Game_update_checkCollisions(t *testing.T) {
