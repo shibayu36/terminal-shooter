@@ -98,7 +98,7 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 	}
 
 	for _, player := range g.GetPlayers() {
-		for _, item := range itemPosMap[player.Position] {
+		for _, item := range itemPosMap[player.Position()] {
 			if bullet, ok := item.(*Bullet); ok {
 				g.UpdatePlayerStatus(player.PlayerID, PlayerStatusDead)
 				g.RemoveItem(bullet.ID())
@@ -131,9 +131,9 @@ func (g *Game) AddPlayer(playerID PlayerID) {
 	defer g.mu.Unlock()
 	g.Players[playerID] = &Player{
 		PlayerID:  playerID,
-		Position:  Position{X: 0, Y: 0},
-		Direction: DirectionUp,
-		Status:    PlayerStatusAlive,
+		position:  Position{X: 0, Y: 0},
+		direction: DirectionUp,
+		status:    PlayerStatusAlive,
 	}
 }
 
@@ -232,13 +232,13 @@ func (g *Game) ShootBullet(playerID PlayerID) ItemID {
 	}
 
 	// deadの場合は弾を発射できない
-	if player.Status == PlayerStatusDead {
+	if player.Status() == PlayerStatusDead {
 		return ItemID("")
 	}
 
 	// プレイヤーの前方に発射する
 	position := player.FowardPosition()
-	direction := player.Direction
+	direction := player.Direction()
 
 	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
 	g.Items[bullet.ID()] = bullet
@@ -253,7 +253,7 @@ func (g *Game) String() string {
 
 	buf := bytes.NewBufferString("")
 	for playerID, player := range g.Players {
-		fmt.Fprintf(buf, "Player: %s, Position: %v\n", string(playerID), player.Position)
+		fmt.Fprintf(buf, "Player: %s, Position: %v\n", string(playerID), player.Position())
 	}
 
 	return buf.String()

@@ -14,27 +14,27 @@ func Test_Game(t *testing.T) {
 
 		// player1を追加
 		game.AddPlayer("player1")
-		assert.Equal(t, 0, game.GetPlayers()["player1"].Position.X)
-		assert.Equal(t, 0, game.GetPlayers()["player1"].Position.Y)
-		assert.Equal(t, DirectionUp, game.GetPlayers()["player1"].Direction)
+		assert.Equal(t, 0, game.GetPlayers()["player1"].Position().X)
+		assert.Equal(t, 0, game.GetPlayers()["player1"].Position().Y)
+		assert.Equal(t, DirectionUp, game.GetPlayers()["player1"].Direction())
 
 		// player1の位置を更新
 		game.MovePlayer("player1", Position{X: 2, Y: 8}, DirectionRight)
-		assert.Equal(t, 2, game.GetPlayers()["player1"].Position.X)
-		assert.Equal(t, 8, game.GetPlayers()["player1"].Position.Y)
-		assert.Equal(t, DirectionRight, game.GetPlayers()["player1"].Direction)
+		assert.Equal(t, 2, game.GetPlayers()["player1"].Position().X)
+		assert.Equal(t, 8, game.GetPlayers()["player1"].Position().Y)
+		assert.Equal(t, DirectionRight, game.GetPlayers()["player1"].Direction())
 
 		// player2を追加
 		game.AddPlayer("player2")
 		assert.Len(t, game.GetPlayers(), 2)
-		assert.Equal(t, 0, game.GetPlayers()["player2"].Position.X)
-		assert.Equal(t, 0, game.GetPlayers()["player2"].Position.Y)
-		assert.Equal(t, DirectionUp, game.GetPlayers()["player2"].Direction)
+		assert.Equal(t, 0, game.GetPlayers()["player2"].Position().X)
+		assert.Equal(t, 0, game.GetPlayers()["player2"].Position().Y)
+		assert.Equal(t, DirectionUp, game.GetPlayers()["player2"].Direction())
 
 		// player1を削除
 		game.RemovePlayer("player1")
 		assert.Len(t, game.GetPlayers(), 1)
-		assert.Equal(t, 0, game.GetPlayers()["player2"].Position.X)
+		assert.Equal(t, 0, game.GetPlayers()["player2"].Position().X)
 	})
 
 	t.Run("弾を追加できる", func(t *testing.T) {
@@ -153,7 +153,7 @@ func Test_Game_update(t *testing.T) {
 		game.update(updatedCh)
 
 		// まだ衝突していない
-		assert.Equal(t, PlayerStatusAlive, game.GetPlayers()[playerID].Status)
+		assert.Equal(t, PlayerStatusAlive, game.GetPlayers()[playerID].Status())
 		assert.Len(t, game.GetItems(), 1)
 		assert.Empty(t, game.GetRemovedItems())
 		assert.Empty(t, updatedCh)
@@ -162,7 +162,7 @@ func Test_Game_update(t *testing.T) {
 		for range 29 {
 			game.update(updatedCh)
 		}
-		assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status)
+		assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status())
 		assert.Empty(t, game.GetItems())
 		assert.Len(t, game.GetRemovedItems(), 1)
 		assert.NotEmpty(t, game.GetRemovedItems()[bulletID])
@@ -184,7 +184,7 @@ func Test_Game_update_checkCollisions(t *testing.T) {
 		game.update(updatedCh)
 
 		// まだ衝突していない
-		assert.Equal(t, PlayerStatusAlive, game.GetPlayers()[playerID].Status)
+		assert.Equal(t, PlayerStatusAlive, game.GetPlayers()[playerID].Status())
 		assert.Len(t, game.GetItems(), 1)
 		assert.Empty(t, game.GetRemovedItems())
 
@@ -192,7 +192,7 @@ func Test_Game_update_checkCollisions(t *testing.T) {
 		for range 29 {
 			game.update(updatedCh)
 		}
-		assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status)
+		assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status())
 		assert.Empty(t, game.GetItems())
 		assert.Len(t, game.GetRemovedItems(), 1)
 		assert.NotEmpty(t, game.GetRemovedItems()[bulletID])
@@ -278,8 +278,8 @@ func Test_Game_MovePlayer(t *testing.T) {
 		game.AddPlayer(playerID)
 
 		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
-		assert.Equal(t, Position{X: 2, Y: 3}, game.GetPlayers()[playerID].Position)
-		assert.Equal(t, DirectionRight, game.GetPlayers()[playerID].Direction)
+		assert.Equal(t, Position{X: 2, Y: 3}, game.GetPlayers()[playerID].Position())
+		assert.Equal(t, DirectionRight, game.GetPlayers()[playerID].Direction())
 	})
 
 	t.Run("プレイヤーが死んでいる場合は位置を更新できない", func(t *testing.T) {
@@ -290,7 +290,7 @@ func Test_Game_MovePlayer(t *testing.T) {
 		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
 		game.UpdatePlayerStatus(playerID, PlayerStatusDead)
 		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
-		assert.Equal(t, Position{X: 2, Y: 3}, game.GetPlayers()[playerID].Position)
+		assert.Equal(t, Position{X: 2, Y: 3}, game.GetPlayers()[playerID].Position())
 	})
 }
 
@@ -300,11 +300,11 @@ func Test_Game_UpdatePlayerStatus(t *testing.T) {
 	game.AddPlayer(playerID)
 
 	game.UpdatePlayerStatus(playerID, PlayerStatusDead)
-	assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status)
+	assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status())
 
 	// 一度deadになったらaliveに戻せない
 	game.UpdatePlayerStatus(playerID, PlayerStatusAlive)
-	assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status)
+	assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status())
 }
 
 func Test_Game_ShootBullet(t *testing.T) {

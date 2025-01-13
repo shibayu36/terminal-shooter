@@ -47,23 +47,19 @@ func TestController_OnConnected(t *testing.T) {
 	cl1 := &mockClient{id: "id1"}
 	err := controller.OnConnected(cl1, nil)
 	require.NoError(t, err)
-	assert.Equal(t, &game.Player{
-		PlayerID:  game.PlayerID("id1"),
-		Position:  game.Position{X: 0, Y: 0},
-		Direction: game.DirectionUp,
-		Status:    game.PlayerStatusAlive,
-	}, state.GetPlayers()[game.PlayerID("id1")], "cl1が追加された")
+	p1 := state.GetPlayers()[game.PlayerID("id1")]
+	assert.Equal(t, game.Position{X: 0, Y: 0}, p1.Position())
+	assert.Equal(t, game.DirectionUp, p1.Direction())
+	assert.Equal(t, game.PlayerStatusAlive, p1.Status())
 	assert.Equal(t, broker.clients[cl1.id], cl1, "cl1がbrokerに追加された")
 
 	cl2 := &mockClient{id: "id2"}
 	err = controller.OnConnected(cl2, nil)
 	require.NoError(t, err)
-	assert.Equal(t, &game.Player{
-		PlayerID:  game.PlayerID("id2"),
-		Position:  game.Position{X: 0, Y: 0},
-		Direction: game.DirectionUp,
-		Status:    game.PlayerStatusAlive,
-	}, state.GetPlayers()[game.PlayerID("id2")], "cl2が追加された")
+	p2 := state.GetPlayers()[game.PlayerID("id2")]
+	assert.Equal(t, game.Position{X: 0, Y: 0}, p2.Position())
+	assert.Equal(t, game.DirectionUp, p2.Direction())
+	assert.Equal(t, game.PlayerStatusAlive, p2.Status())
 	assert.Equal(t, broker.clients[cl2.id], cl2, "cl2がbrokerに追加された")
 }
 
@@ -156,9 +152,9 @@ func TestController_OnPublished_PlayerState(t *testing.T) {
 	}
 
 	// cl3の位置が更新されている
-	assert.EqualValues(t, 15, state.GetPlayers()[game.PlayerID("id3")].Position.X)
-	assert.EqualValues(t, 25, state.GetPlayers()[game.PlayerID("id3")].Position.Y)
-	assert.Equal(t, game.DirectionRight, state.GetPlayers()[game.PlayerID("id3")].Direction)
+	assert.EqualValues(t, 15, state.GetPlayers()[game.PlayerID("id3")].Position().X)
+	assert.EqualValues(t, 25, state.GetPlayers()[game.PlayerID("id3")].Position().Y)
+	assert.Equal(t, game.DirectionRight, state.GetPlayers()[game.PlayerID("id3")].Direction())
 
 	// cl1, cl2, cl3にそれぞれ位置が送信されている
 	for _, cl := range []*mockClient{cl1, cl2, cl3} {
