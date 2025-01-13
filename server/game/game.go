@@ -78,8 +78,27 @@ func (g *Game) update(updatedItemsCh chan<- struct{}) {
 		}
 	}
 
+	g.checkCollisions()
+
 	if len(updatedItems) > 0 {
 		updatedItemsCh <- struct{}{}
+	}
+}
+
+func (g *Game) checkCollisions() {
+	// プレイヤーとアイテムが衝突しているかどうかをチェックする
+	itemPosMap := make(map[Position][]Item)
+	for _, item := range g.GetItems() {
+		itemPosMap[item.Position()] = append(itemPosMap[item.Position()], item)
+	}
+
+	for _, player := range g.GetPlayers() {
+		for _, item := range itemPosMap[player.Position] {
+			if bullet, ok := item.(*Bullet); ok {
+				g.UpdatePlayerStatus(player.PlayerID, PlayerStatusDead)
+				g.RemoveItem(bullet.ID())
+			}
+		}
 	}
 }
 
@@ -98,6 +117,7 @@ func (g *Game) AddPlayer(playerID PlayerID) {
 		PlayerID:  playerID,
 		Position:  Position{X: 0, Y: 0},
 		Direction: DirectionUp,
+		Status:    PlayerStatusAlive,
 	}
 }
 
@@ -114,6 +134,14 @@ func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direct
 	defer g.mu.Unlock()
 	g.Players[playerID].Position = position
 	g.Players[playerID].Direction = direction
+	return g.Players[playerID]
+}
+
+// プレイヤーのステータスを更新する
+func (g *Game) UpdatePlayerStatus(playerID PlayerID, status PlayerStatus) *Player {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.Players[playerID].Status = status
 	return g.Players[playerID]
 }
 
