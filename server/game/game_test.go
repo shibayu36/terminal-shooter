@@ -242,6 +242,42 @@ func Test_Game_ItemsOperation(t *testing.T) {
 	}, removedItems)
 }
 
+func Test_Game_MovePlayer(t *testing.T) {
+	t.Run("プレイヤーを指定した位置、方向に移動できる", func(t *testing.T) {
+		game := NewGame(30, 30)
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+
+		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
+		assert.Equal(t, Position{X: 2, Y: 3}, game.GetPlayers()[playerID].Position)
+		assert.Equal(t, DirectionRight, game.GetPlayers()[playerID].Direction)
+	})
+
+	t.Run("プレイヤーが死んでいる場合は位置を更新できない", func(t *testing.T) {
+		game := NewGame(30, 30)
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+
+		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
+		game.UpdatePlayerStatus(playerID, PlayerStatusDead)
+		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
+		assert.Equal(t, Position{X: 2, Y: 3}, game.GetPlayers()[playerID].Position)
+	})
+}
+
+func Test_Game_UpdatePlayerStatus(t *testing.T) {
+	game := NewGame(30, 30)
+	playerID := PlayerID("player1")
+	game.AddPlayer(playerID)
+
+	game.UpdatePlayerStatus(playerID, PlayerStatusDead)
+	assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status)
+
+	// 一度deadになったらaliveに戻せない
+	game.UpdatePlayerStatus(playerID, PlayerStatusAlive)
+	assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status)
+}
+
 func Test_Game_ShootBullet(t *testing.T) {
 	t.Run("プレイヤーが弾を発射できる", func(t *testing.T) {
 		game := NewGame(30, 30)
@@ -269,5 +305,14 @@ func Test_Game_ShootBullet(t *testing.T) {
 		bulletID := game.ShootBullet(PlayerID("player1"))
 		assert.Empty(t, bulletID)
 		assert.Empty(t, game.GetItems())
+	})
+
+	t.Run("deadのプレイヤーから弾を発射すると何もしない", func(t *testing.T) {
+		game := NewGame(30, 30)
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.UpdatePlayerStatus(playerID, PlayerStatusDead)
+		bulletID := game.ShootBullet(playerID)
+		assert.Empty(t, bulletID)
 	})
 }

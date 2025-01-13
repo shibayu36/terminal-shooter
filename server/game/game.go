@@ -132,6 +132,10 @@ func (g *Game) RemovePlayer(playerID PlayerID) {
 func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direction) *Player {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if g.Players[playerID].Status == PlayerStatusDead {
+		// deadの場合は移動できない
+		return g.Players[playerID]
+	}
 	g.Players[playerID].Position = position
 	g.Players[playerID].Direction = direction
 	return g.Players[playerID]
@@ -141,6 +145,10 @@ func (g *Game) MovePlayer(playerID PlayerID, position Position, direction Direct
 func (g *Game) UpdatePlayerStatus(playerID PlayerID, status PlayerStatus) *Player {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if g.Players[playerID].Status == PlayerStatusDead {
+		// deadの場合は更新できない
+		return g.Players[playerID]
+	}
 	g.Players[playerID].Status = status
 	return g.Players[playerID]
 }
@@ -202,6 +210,11 @@ func (g *Game) ShootBullet(playerID PlayerID) ItemID {
 
 	player, ok := g.Players[playerID]
 	if !ok {
+		return ItemID("")
+	}
+
+	// deadの場合は弾を発射できない
+	if player.Status == PlayerStatusDead {
 		return ItemID("")
 	}
 
