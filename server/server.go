@@ -107,6 +107,12 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 
 	defer func() {
+		defer s.wg.Done()
+		if s.inShutdown.Load() {
+			// シャットダウン中はClose処理などはShutdownに任せる
+			return
+		}
+
 		err := s.hook.OnDisconnected(client)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Error on disconnected\n%+v", err))
@@ -116,8 +122,6 @@ func (s *Server) handleConnection(conn net.Conn) {
 		s.mu.Lock()
 		delete(s.activeConn, conn)
 		s.mu.Unlock()
-
-		s.wg.Done()
 	}()
 
 	slog.Info("New client connected", "address", conn.RemoteAddr())
@@ -139,6 +143,10 @@ func (s *Server) handleConnection(conn net.Conn) {
 		}
 
 		if err := s.handlePacket(client, packet); err != nil {
+			if s.inShutdown.Load() {
+				return
+			}
+
 			// packet一つのハンドリングを失敗しただけなら、そのパケットを破棄して続ける
 			slog.Error(fmt.Sprintf("Error handling packet\n%+v", err))
 		}
