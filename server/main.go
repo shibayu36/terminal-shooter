@@ -20,7 +20,7 @@ func main() {
 		MQTTPort:    "1883",
 		MetricsPort: "2112",
 	}
-	if err := run(options); err != nil {
+	if err := run(context.Background(), options); err != nil {
 		slog.Error(fmt.Sprintf("failed to run\n%+v", err))
 		os.Exit(1)
 	}
@@ -31,8 +31,8 @@ type runOptions struct {
 	MetricsPort string
 }
 
-func run(opts *runOptions) error {
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+func run(ctx context.Context, opts *runOptions) error {
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	broker := NewBroker()
@@ -75,7 +75,7 @@ func run(opts *runOptions) error {
 	}
 
 	{
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		if err := metricsServer.Shutdown(ctx); err != nil {
 			panic(err)
