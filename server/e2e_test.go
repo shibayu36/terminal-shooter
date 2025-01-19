@@ -2,53 +2,35 @@ package main
 
 import (
 	"context"
-	"net"
 	"testing"
 	"time"
 
-	"github.com/eclipse/paho.mqtt.golang/packets"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/stretchr/testify/require"
 )
 
 type TestClient struct {
-	conn     net.Conn
-	clientID string
+	client mqtt.Client
 }
 
 func NewTestClient(address string, clientID string) (*TestClient, error) {
-	conn, err := net.Dial("tcp", address)
-	if err != nil {
-		return nil, err
+	opts := mqtt.NewClientOptions().
+		AddBroker("tcp://" + address).
+		SetClientID(clientID)
+
+	client := mqtt.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		return nil, token.Error()
 	}
 
-	client := &TestClient{
-		conn:     conn,
-		clientID: clientID,
-	}
-
-	// CONNECT パケットを送信
-	//nolint:forcetypeassert
-	connectPacket := packets.NewControlPacket(packets.Connect).(*packets.ConnectPacket)
-	connectPacket.ClientIdentifier = clientID
-	if err := connectPacket.Write(client.conn); err != nil {
-		return nil, err
-	}
-
-	// CONNACK パケットを受信
-	packet, err := packets.ReadPacket(client.conn)
-	if err != nil {
-		return nil, err
-	}
-	connack, ok := packet.(*packets.ConnackPacket)
-	if !ok || connack.ReturnCode != packets.Accepted {
-		return nil, err
-	}
-
-	return client, nil
+	return &TestClient{
+		client: client,
+	}, nil
 }
 
 func (c *TestClient) Close() error {
-	return c.conn.Close()
+	c.client.Disconnect(250)
+	return nil
 }
 
 func TestE2E(t *testing.T) {
