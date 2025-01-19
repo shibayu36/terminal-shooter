@@ -52,10 +52,15 @@ func TestE2E(t *testing.T) {
 		// サーバーの起動を待つ
 		time.Sleep(100 * time.Millisecond)
 
-		// クライアントが接続できる
-		client, err := NewTestClient("localhost:"+opts.MQTTPort, "test-client")
+		// クライアント1が接続できる
+		client1, err := NewTestClient("localhost:"+opts.MQTTPort, "test-client-1")
 		require.NoError(t, err)
-		defer client.Close()
+		defer client1.Close()
+
+		// クライアント2が接続できる
+		client2, err := NewTestClient("localhost:"+opts.MQTTPort, "test-client-2")
+		require.NoError(t, err)
+		defer client2.Close()
 
 		// サーバーを正常に終了できる
 		cancel()
