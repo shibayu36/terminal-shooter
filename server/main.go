@@ -16,14 +16,22 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	options := &runOptions{
+		MQTTPort:    "1883",
+		MetricsPort: "2112",
+	}
+	if err := run(options); err != nil {
 		slog.Error(fmt.Sprintf("failed to run\n%+v", err))
 		os.Exit(1)
 	}
 }
 
-//nolint:funlen
-func run() error {
+type runOptions struct {
+	MQTTPort    string
+	MetricsPort string
+}
+
+func run(opts *runOptions) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
@@ -31,7 +39,8 @@ func run() error {
 
 	gameState := game.NewGame(30, 30)
 	controller := NewController(broker, gameState)
-	server, err := NewServer(":1883", controller)
+
+	server, err := NewServer(":"+opts.MQTTPort, controller)
 	if err != nil {
 		return err
 	}
@@ -48,7 +57,7 @@ func run() error {
 	// Prometheusメトリクスサーバーの起動
 	//nolint:exhaustruct,gosec
 	metricsServer := &http.Server{
-		Addr:    ":2112",
+		Addr:    ":" + opts.MetricsPort,
 		Handler: promhttp.Handler(),
 	}
 	go func() {
