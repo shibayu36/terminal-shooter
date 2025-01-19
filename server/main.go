@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		slog.Error("failed to run", "error", err)
+		slog.Error(fmt.Sprintf("failed to run\n%+v", err))
 		os.Exit(1)
 	}
 }

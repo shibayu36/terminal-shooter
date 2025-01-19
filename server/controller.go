@@ -201,12 +201,12 @@ func (c *Controller) publishItemStates() {
 
 		payload, err := proto.Marshal(itemState)
 		if err != nil {
-			slog.Error("failed to marshal item state", "error", err)
+			slog.Error(fmt.Sprintf("failed to marshal item state\n%+v", err))
 			continue
 		}
 		err = c.broker.Broadcast("item_state", payload)
 		if err != nil {
-			slog.Error("failed to broadcast item state", "error", err)
+			slog.Error(fmt.Sprintf("failed to broadcast item state\n%+v", err))
 		}
 	}
 
@@ -219,12 +219,12 @@ func (c *Controller) publishItemStates() {
 
 		payload, err := proto.Marshal(itemState)
 		if err != nil {
-			slog.Error("failed to marshal item state", "error", err)
+			slog.Error(fmt.Sprintf("failed to marshal item state\n%+v", err))
 			continue
 		}
 		err = c.broker.Broadcast("item_state", payload)
 		if err != nil {
-			slog.Error("failed to broadcast item state", "error", err)
+			slog.Error(fmt.Sprintf("failed to broadcast item state\n%+v", err))
 			continue
 		}
 
@@ -237,12 +237,12 @@ func (c *Controller) publishPlayerStates() {
 	for _, player := range c.game.GetPlayers() {
 		payload, err := proto.Marshal(player.ToSharedPlayerState())
 		if err != nil {
-			slog.Error("failed to marshal player state", "error", err)
+			slog.Error(fmt.Sprintf("failed to marshal player state\n%+v", err))
 			continue
 		}
 		err = c.broker.Broadcast("player_state", payload)
 		if err != nil {
-			slog.Error("failed to broadcast player state", "error", err)
+			slog.Error(fmt.Sprintf("failed to broadcast player state\n%+v", err))
 		}
 	}
 }
