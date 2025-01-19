@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// テストクライアントの実装
 type TestClient struct {
 	conn     net.Conn
 	clientID string
@@ -53,12 +52,12 @@ func (c *TestClient) Close() error {
 }
 
 func TestE2E(t *testing.T) {
-	t.Run("クライアントが接続できる", func(t *testing.T) {
-		opts := &runOptions{
-			MQTTPort:    "11883",
-			MetricsPort: "12113",
-		}
+	opts := &runOptions{
+		MQTTPort:    "11883",
+		MetricsPort: "12113",
+	}
 
+	t.Run("クライアントが接続でき、サーバーを終了できる", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -71,12 +70,12 @@ func TestE2E(t *testing.T) {
 		// サーバーの起動を待つ
 		time.Sleep(100 * time.Millisecond)
 
-		// クライアントが接続できることを確認
+		// クライアントが接続できる
 		client, err := NewTestClient("localhost:"+opts.MQTTPort, "test-client")
 		require.NoError(t, err)
 		defer client.Close()
 
-		// テスト終了時にサーバーを終了
+		// サーバーを正常に終了できる
 		cancel()
 		err = <-errCh
 		require.NoError(t, err)
