@@ -109,7 +109,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	defer func() {
 		err := s.hook.OnDisconnected(client)
 		if err != nil {
-			slog.Error("Error on disconnected", "error", fmt.Sprintf("%+v", err))
+			slog.Error(fmt.Sprintf("Error on disconnected\n%+v", err))
 		}
 		conn.Close()
 
@@ -134,17 +134,13 @@ func (s *Server) handleConnection(conn net.Conn) {
 				return
 			}
 
-			slog.Error("Error reading packet",
-				"error", fmt.Sprintf("%+v", err),
-			)
+			slog.Error(fmt.Sprintf("Error reading packet\n%+v", err))
 			return
 		}
 
 		if err := s.handlePacket(client, packet); err != nil {
 			// packet一つのハンドリングを失敗しただけなら、そのパケットを破棄して続ける
-			slog.Error("Error handling packet",
-				"error", fmt.Sprintf("%+v", err),
-			)
+			slog.Error(fmt.Sprintf("Error handling packet\n%+v", err))
 		}
 	}
 }
