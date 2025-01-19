@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -45,24 +44,6 @@ func run() error {
 
 	updatedCh := gameState.StartUpdateLoop(ctx)
 	controller.StartPublishLoop(ctx, updatedCh)
-
-	ticker := time.NewTicker(1234 * time.Millisecond)
-	defer ticker.Stop()
-	go func() {
-		for range ticker.C {
-			directions := []game.Direction{
-				game.DirectionUp,
-				game.DirectionDown,
-				game.DirectionLeft,
-				game.DirectionRight,
-			}
-			//nolint:gosec
-			gameState.AddBullet(
-				game.Position{X: rand.Intn(30), Y: rand.Intn(30)},
-				directions[rand.Intn(4)],
-			)
-		}
-	}()
 
 	// Prometheusメトリクスサーバーの起動
 	//nolint:exhaustruct,gosec
