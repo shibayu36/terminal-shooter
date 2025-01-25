@@ -18,14 +18,23 @@ func NewTestClient(address string, clientID string) (*TestClient, error) {
 		AddBroker("tcp://" + address).
 		SetClientID(clientID)
 
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
+	c := &TestClient{
+		client: mqtt.NewClient(opts),
+	}
+
+	if token := c.client.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
 	}
 
-	return &TestClient{
-		client: client,
-	}, nil
+	if token := c.client.Subscribe("#", 0, c.Callback); token.Wait() && token.Error() != nil {
+		return nil, token.Error()
+	}
+
+	return c, nil
+}
+
+func (c *TestClient) Callback(client mqtt.Client, message mqtt.Message) {
+	return
 }
 
 func (c *TestClient) Close() error {
@@ -53,14 +62,12 @@ func TestE2E(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		// クライアント1が接続できる
-		client1, err := NewTestClient("localhost:"+opts.MQTTPort, "test-client-1")
+		_, err := NewTestClient("localhost:"+opts.MQTTPort, "test-client-1")
 		require.NoError(t, err)
-		defer client1.Close()
 
 		// クライアント2が接続できる
-		client2, err := NewTestClient("localhost:"+opts.MQTTPort, "test-client-2")
+		_, err = NewTestClient("localhost:"+opts.MQTTPort, "test-client-2")
 		require.NoError(t, err)
-		defer client2.Close()
 
 		// サーバーを正常に終了できる
 		cancel()
