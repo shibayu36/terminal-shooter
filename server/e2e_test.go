@@ -14,6 +14,7 @@ import (
 
 type TestClient struct {
 	client   mqtt.Client
+	clientID string
 	messages []mqtt.Message
 	mu       sync.Mutex `exhaustruct:"optional"`
 }
@@ -24,7 +25,8 @@ func NewTestClient(t *testing.T, address string, clientID string) *TestClient {
 		SetClientID(clientID)
 
 	c := &TestClient{
-		client: mqtt.NewClient(opts),
+		client:   mqtt.NewClient(opts),
+		clientID: clientID,
 	}
 
 	if token := c.client.Connect(); token.Wait() && token.Error() != nil {
@@ -58,6 +60,49 @@ func (c *TestClient) Messages() []mqtt.Message {
 func (c *TestClient) Close() error {
 	c.client.Disconnect(250)
 	return nil
+}
+
+func (c *TestClient) GetMessages(topic string) []mqtt.Message {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var messages []mqtt.Message
+	for _, msg := range c.messages {
+		if msg.Topic() == topic {
+			messages = append(messages, msg)
+		}
+	}
+	return messages
+}
+
+func (c *TestClient) MustFindLastPlayerStateMessage(t *testing.T, playerId string) *shared.PlayerState {
+	messages := c.GetMessages("player_state")
+	for i := len(messages) - 1; i >= 0; i-- {
+		var state shared.PlayerState
+		err := proto.Unmarshal(messages[i].Payload(), &state)
+		require.NoError(t, err)
+		if state.PlayerId == playerId {
+			return &state
+		}
+	}
+	t.Fatalf("player state not found for player %s", playerId)
+	return nil
+}
+
+func (c *TestClient) PublishPlayerState(position *shared.Position, direction shared.Direction) error {
+	playerState := &shared.PlayerState{
+		PlayerId:  c.clientID,
+		Position:  position,
+		Direction: direction,
+	}
+	payload, err := proto.Marshal(playerState)
+	if err != nil {
+		return err
+	}
+
+	token := c.client.Publish("player_state", 0, false, payload)
+	token.Wait()
+	return token.Error()
 }
 
 func TestE2E(t *testing.T) {
@@ -108,38 +153,17 @@ func TestE2E(t *testing.T) {
 		client2 := NewTestClient(t, "localhost:"+opts.MQTTPort, "test-client-2")
 
 		// client1がプレイヤーの位置を更新
-		playerState := &shared.PlayerState{
-			PlayerId: "test-client-1",
-			Position: &shared.Position{
-				X: 10,
-				Y: 20,
-			},
-			Direction: shared.Direction_RIGHT,
-		}
-		payload, err := proto.Marshal(playerState)
+		err := client1.PublishPlayerState(
+			&shared.Position{X: 10, Y: 20},
+			shared.Direction_RIGHT,
+		)
 		require.NoError(t, err)
-
-		token := client1.client.Publish("player_state", 0, false, payload)
-		token.Wait()
-		require.NoError(t, token.Error())
 
 		// client2が更新を受信するまで待つ
 		time.Sleep(100 * time.Millisecond)
 
 		// client2が受信したメッセージを確認
-		var receivedState shared.PlayerState
-		found := false
-		for _, msg := range client2.Messages() {
-			if msg.Topic() == "player_state" {
-				err := proto.Unmarshal(msg.Payload(), &receivedState)
-				require.NoError(t, err)
-				if receivedState.PlayerId == "test-client-1" {
-					found = true
-				}
-			}
-		}
-
-		require.True(t, found, "client2がclient1の位置更新を受信している")
+		receivedState := client2.MustFindLastPlayerStateMessage(t, "test-client-1")
 		require.Equal(t, int32(10), receivedState.Position.X)
 		require.Equal(t, int32(20), receivedState.Position.Y)
 		require.Equal(t, shared.Direction_RIGHT, receivedState.Direction)
