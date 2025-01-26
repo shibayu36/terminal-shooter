@@ -33,14 +33,14 @@ func NewTestClient(t *testing.T, address string, clientID string) *TestClient {
 		t.Fatalf("failed to connect to server: %v", token.Error())
 	}
 
-	if token := c.client.Subscribe("#", 0, c.Callback); token.Wait() && token.Error() != nil {
+	if token := c.client.Subscribe("#", 0, c.OnPublished); token.Wait() && token.Error() != nil {
 		t.Fatalf("failed to subscribe to server: %v", token.Error())
 	}
 
 	return c
 }
 
-func (c *TestClient) Callback(client mqtt.Client, message mqtt.Message) {
+func (c *TestClient) OnPublished(client mqtt.Client, message mqtt.Message) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
