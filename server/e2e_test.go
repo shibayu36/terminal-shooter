@@ -199,9 +199,9 @@ func TestE2E(t *testing.T) {
 			// client2が受信したメッセージを確認
 			time.Sleep(100 * time.Millisecond)
 			receivedState := client2.MustFindLastPlayerStateMessage(t, "player1")
-			require.Equal(t, int32(10), receivedState.Position.X)
-			require.Equal(t, int32(20), receivedState.Position.Y)
-			require.Equal(t, shared.Direction_RIGHT, receivedState.Direction)
+			assert.Equal(t, int32(10), receivedState.Position.X)
+			assert.Equal(t, int32(20), receivedState.Position.Y)
+			assert.Equal(t, shared.Direction_RIGHT, receivedState.Direction)
 		}
 
 		// client2がプレイヤーの位置を更新すると、client1が受信できる
@@ -215,9 +215,9 @@ func TestE2E(t *testing.T) {
 			// client1が受信したメッセージを確認
 			time.Sleep(100 * time.Millisecond)
 			receivedState := client1.MustFindLastPlayerStateMessage(t, "player2")
-			require.Equal(t, int32(2), receivedState.Position.X)
-			require.Equal(t, int32(1), receivedState.Position.Y)
-			require.Equal(t, shared.Direction_UP, receivedState.Direction)
+			assert.Equal(t, int32(2), receivedState.Position.X)
+			assert.Equal(t, int32(1), receivedState.Position.Y)
+			assert.Equal(t, shared.Direction_UP, receivedState.Direction)
 		}
 	})
 
