@@ -63,9 +63,8 @@ func (c *TestClient) Messages() []mqtt.Message {
 	return messages
 }
 
-func (c *TestClient) Close() error {
+func (c *TestClient) Close() {
 	c.client.Disconnect(250)
-	return nil
 }
 
 func (c *TestClient) GetMessages(topic string) []mqtt.Message {
