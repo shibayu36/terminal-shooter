@@ -152,25 +152,41 @@ func TestE2E(t *testing.T) {
 		client1 := NewTestClient(t, "localhost:"+opts.MQTTPort, "test-client-1")
 		client2 := NewTestClient(t, "localhost:"+opts.MQTTPort, "test-client-2")
 
-		// client1がプレイヤーの位置を更新
-		err := client1.PublishPlayerState(
-			&shared.Position{X: 10, Y: 20},
-			shared.Direction_RIGHT,
-		)
-		require.NoError(t, err)
+		// client1がプレイヤーの位置を更新すると、client2が受信できる
+		{
+			err := client1.PublishPlayerState(
+				&shared.Position{X: 10, Y: 20},
+				shared.Direction_RIGHT,
+			)
+			require.NoError(t, err)
 
-		// client2が更新を受信するまで待つ
-		time.Sleep(100 * time.Millisecond)
+			// client2が受信したメッセージを確認
+			time.Sleep(100 * time.Millisecond)
+			receivedState := client2.MustFindLastPlayerStateMessage(t, "test-client-1")
+			require.Equal(t, int32(10), receivedState.Position.X)
+			require.Equal(t, int32(20), receivedState.Position.Y)
+			require.Equal(t, shared.Direction_RIGHT, receivedState.Direction)
+		}
 
-		// client2が受信したメッセージを確認
-		receivedState := client2.MustFindLastPlayerStateMessage(t, "test-client-1")
-		require.Equal(t, int32(10), receivedState.Position.X)
-		require.Equal(t, int32(20), receivedState.Position.Y)
-		require.Equal(t, shared.Direction_RIGHT, receivedState.Direction)
+		// client2がプレイヤーの位置を更新すると、client1が受信できる
+		{
+			err := client2.PublishPlayerState(
+				&shared.Position{X: 2, Y: 1},
+				shared.Direction_UP,
+			)
+			require.NoError(t, err)
+
+			// client1が受信したメッセージを確認
+			time.Sleep(100 * time.Millisecond)
+			receivedState := client1.MustFindLastPlayerStateMessage(t, "test-client-2")
+			require.Equal(t, int32(2), receivedState.Position.X)
+			require.Equal(t, int32(1), receivedState.Position.Y)
+			require.Equal(t, shared.Direction_UP, receivedState.Direction)
+		}
 
 		// サーバーを正常に終了
 		cancel()
-		err = <-errCh
+		err := <-errCh
 		require.NoError(t, err)
 	})
 }
