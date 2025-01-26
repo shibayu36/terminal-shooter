@@ -26,24 +26,24 @@ func NewTestClient(t *testing.T, address string, clientID string) *TestClient {
 		AddBroker("tcp://" + address).
 		SetClientID(clientID)
 
-	c := &TestClient{
+	client := &TestClient{
 		client:   mqtt.NewClient(opts),
 		clientID: clientID,
 	}
 
-	if token := c.client.Connect(); token.Wait() && token.Error() != nil {
+	if token := client.client.Connect(); token.Wait() && token.Error() != nil {
 		t.Fatalf("failed to connect to server: %v", token.Error())
 	}
 
-	if token := c.client.Subscribe("#", 0, c.OnPublished); token.Wait() && token.Error() != nil {
+	if token := client.client.Subscribe("#", 0, client.OnPublished); token.Wait() && token.Error() != nil {
 		t.Fatalf("failed to subscribe to server: %v", token.Error())
 	}
 
 	t.Cleanup(func() {
-		c.Close()
+		client.Close()
 	})
 
-	return c
+	return client
 }
 
 func (c *TestClient) OnPublished(client mqtt.Client, message mqtt.Message) {
