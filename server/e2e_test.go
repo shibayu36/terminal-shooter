@@ -21,6 +21,7 @@ type TestClient struct {
 }
 
 func NewTestClient(t *testing.T, address string, clientID string) *TestClient {
+	t.Helper()
 	opts := mqtt.NewClientOptions().
 		AddBroker("tcp://" + address).
 		SetClientID(clientID)
@@ -81,6 +82,7 @@ func (c *TestClient) GetMessages(topic string) []mqtt.Message {
 }
 
 func (c *TestClient) MustFindLastPlayerStateMessage(t *testing.T, playerID string) *shared.PlayerState {
+	t.Helper()
 	messages := c.GetMessages("player_state")
 	for i := len(messages) - 1; i >= 0; i-- {
 		var state shared.PlayerState
@@ -125,6 +127,7 @@ func (c *TestClient) PublishPlayerAction(actionType shared.ActionType) error {
 }
 
 func (c *TestClient) MustFindItemStateMessages(t *testing.T) []*shared.ItemState {
+	t.Helper()
 	messages := c.GetMessages("item_state")
 	states := make([]*shared.ItemState, 0, len(messages))
 	for _, msg := range messages {
