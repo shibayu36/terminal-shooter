@@ -86,7 +86,7 @@ func (c *TestClient) MustFindLastPlayerStateMessage(t *testing.T, playerId strin
 		var state shared.PlayerState
 		err := proto.Unmarshal(messages[i].Payload(), &state)
 		require.NoError(t, err)
-		if state.PlayerId == playerId {
+		if state.GetPlayerId() == playerId {
 			return &state
 		}
 	}
@@ -199,9 +199,9 @@ func TestE2E(t *testing.T) {
 			// client2が受信したメッセージを確認
 			time.Sleep(100 * time.Millisecond)
 			receivedState := client2.MustFindLastPlayerStateMessage(t, "player1")
-			assert.Equal(t, int32(10), receivedState.Position.X)
-			assert.Equal(t, int32(20), receivedState.Position.Y)
-			assert.Equal(t, shared.Direction_RIGHT, receivedState.Direction)
+			assert.Equal(t, int32(10), receivedState.GetPosition().GetX())
+			assert.Equal(t, int32(20), receivedState.GetPosition().GetY())
+			assert.Equal(t, shared.Direction_RIGHT, receivedState.GetDirection())
 		}
 
 		// client2がプレイヤーの位置を更新すると、client1が受信できる
@@ -215,9 +215,9 @@ func TestE2E(t *testing.T) {
 			// client1が受信したメッセージを確認
 			time.Sleep(100 * time.Millisecond)
 			receivedState := client1.MustFindLastPlayerStateMessage(t, "player2")
-			assert.Equal(t, int32(2), receivedState.Position.X)
-			assert.Equal(t, int32(1), receivedState.Position.Y)
-			assert.Equal(t, shared.Direction_UP, receivedState.Direction)
+			assert.Equal(t, int32(2), receivedState.GetPosition().GetX())
+			assert.Equal(t, int32(1), receivedState.GetPosition().GetY())
+			assert.Equal(t, shared.Direction_UP, receivedState.GetDirection())
 		}
 	})
 
@@ -260,10 +260,10 @@ func TestE2E(t *testing.T) {
 			// client1
 			itemMessages := client.MustFindItemStateMessages(t)
 			require.Len(t, itemMessages, 1)
-			assert.Equal(t, shared.ItemType_BULLET, itemMessages[0].Type)
-			assert.Equal(t, shared.ItemStatus_ACTIVE, itemMessages[0].Status)
-			assert.Equal(t, int32(12), itemMessages[0].Position.X, "右向きに発射され、さらに1進んだ値")
-			assert.Equal(t, int32(20), itemMessages[0].Position.Y)
+			assert.Equal(t, shared.ItemType_BULLET, itemMessages[0].GetType())
+			assert.Equal(t, shared.ItemStatus_ACTIVE, itemMessages[0].GetStatus())
+			assert.Equal(t, int32(12), itemMessages[0].GetPosition().GetX(), "右向きに発射され、さらに1進んだ値")
+			assert.Equal(t, int32(20), itemMessages[0].GetPosition().GetY())
 		}
 
 		// さらに1マス進むのを待ち、受け取れることを確認
@@ -271,8 +271,8 @@ func TestE2E(t *testing.T) {
 		for _, client := range []*TestClient{client1, client2} {
 			itemMessages := client.MustFindItemStateMessages(t)
 			require.Len(t, itemMessages, 2)
-			assert.Equal(t, int32(13), itemMessages[1].Position.X, "さらに1マス進んた値")
-			assert.Equal(t, int32(20), itemMessages[1].Position.Y)
+			assert.Equal(t, int32(13), itemMessages[1].GetPosition().GetX(), "さらに1マス進んた値")
+			assert.Equal(t, int32(20), itemMessages[1].GetPosition().GetY())
 		}
 	})
 }
