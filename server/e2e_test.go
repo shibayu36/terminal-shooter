@@ -8,6 +8,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/shibayu36/terminal-shooter/shared"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 )
@@ -36,6 +37,10 @@ func NewTestClient(t *testing.T, address string, clientID string) *TestClient {
 	if token := c.client.Subscribe("#", 0, c.OnPublished); token.Wait() && token.Error() != nil {
 		t.Fatalf("failed to subscribe to server: %v", token.Error())
 	}
+
+	t.Cleanup(func() {
+		c.Close()
+	})
 
 	return c
 }
@@ -105,6 +110,32 @@ func (c *TestClient) PublishPlayerState(position *shared.Position, direction sha
 	return token.Error()
 }
 
+func (c *TestClient) PublishPlayerAction(actionType shared.ActionType) error {
+	req := &shared.PlayerActionRequest{
+		Type: actionType,
+	}
+	payload, err := proto.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	token := c.client.Publish("player_action", 0, false, payload)
+	token.Wait()
+	return token.Error()
+}
+
+func (c *TestClient) MustFindItemStateMessages(t *testing.T) []*shared.ItemState {
+	messages := c.GetMessages("item_state")
+	states := make([]*shared.ItemState, 0, len(messages))
+	for _, msg := range messages {
+		var state shared.ItemState
+		err := proto.Unmarshal(msg.Payload(), &state)
+		require.NoError(t, err)
+		states = append(states, &state)
+	}
+	return states
+}
+
 func TestE2E(t *testing.T) {
 	opts := &runOptions{
 		MQTTPort:    "11883",
@@ -125,10 +156,10 @@ func TestE2E(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		// クライアント1が接続できる
-		NewTestClient(t, "localhost:"+opts.MQTTPort, "test-client-1")
+		NewTestClient(t, "localhost:"+opts.MQTTPort, "connect1")
 
 		// クライアント2が接続できる
-		NewTestClient(t, "localhost:"+opts.MQTTPort, "test-client-2")
+		NewTestClient(t, "localhost:"+opts.MQTTPort, "connect2")
 
 		// サーバーを正常に終了できる
 		cancel()
@@ -145,12 +176,17 @@ func TestE2E(t *testing.T) {
 		go func() {
 			errCh <- run(ctx, opts)
 		}()
+		t.Cleanup(func() {
+			cancel()
+			err := <-errCh
+			require.NoError(t, err)
+		})
 
 		// サーバーの起動を待つ
 		time.Sleep(100 * time.Millisecond)
 
-		client1 := NewTestClient(t, "localhost:"+opts.MQTTPort, "test-client-1")
-		client2 := NewTestClient(t, "localhost:"+opts.MQTTPort, "test-client-2")
+		client1 := NewTestClient(t, "localhost:"+opts.MQTTPort, "player1")
+		client2 := NewTestClient(t, "localhost:"+opts.MQTTPort, "player2")
 
 		// client1がプレイヤーの位置を更新すると、client2が受信できる
 		{
@@ -162,7 +198,7 @@ func TestE2E(t *testing.T) {
 
 			// client2が受信したメッセージを確認
 			time.Sleep(100 * time.Millisecond)
-			receivedState := client2.MustFindLastPlayerStateMessage(t, "test-client-1")
+			receivedState := client2.MustFindLastPlayerStateMessage(t, "player1")
 			require.Equal(t, int32(10), receivedState.Position.X)
 			require.Equal(t, int32(20), receivedState.Position.Y)
 			require.Equal(t, shared.Direction_RIGHT, receivedState.Direction)
@@ -178,15 +214,65 @@ func TestE2E(t *testing.T) {
 
 			// client1が受信したメッセージを確認
 			time.Sleep(100 * time.Millisecond)
-			receivedState := client1.MustFindLastPlayerStateMessage(t, "test-client-2")
+			receivedState := client1.MustFindLastPlayerStateMessage(t, "player2")
 			require.Equal(t, int32(2), receivedState.Position.X)
 			require.Equal(t, int32(1), receivedState.Position.Y)
 			require.Equal(t, shared.Direction_UP, receivedState.Direction)
 		}
+	})
 
-		// サーバーを正常に終了
-		cancel()
-		err := <-errCh
+	t.Run("アイテムの状態がプレイヤーに配信され続ける", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// サーバー起動
+		errCh := make(chan error)
+		go func() {
+			errCh <- run(ctx, opts)
+		}()
+		t.Cleanup(func() {
+			cancel()
+			err := <-errCh
+			require.NoError(t, err)
+		})
+
+		// サーバーの起動を待つ
+		time.Sleep(100 * time.Millisecond)
+
+		client1 := NewTestClient(t, "localhost:"+opts.MQTTPort, "shoot-player1")
+		client2 := NewTestClient(t, "localhost:"+opts.MQTTPort, "shoot-player2")
+
+		// client1が右向きで位置を設定
+		err := client1.PublishPlayerState(
+			&shared.Position{X: 10, Y: 20},
+			shared.Direction_RIGHT,
+		)
 		require.NoError(t, err)
+
+		// client1が銃を発射
+		err = client1.PublishPlayerAction(shared.ActionType_SHOOT_BULLET)
+		require.NoError(t, err)
+
+		// 弾丸が生成され、client1, client2が受信できることを確認
+		// 60FPSで30tickするので、最低でも500ms待つ
+		time.Sleep(550 * time.Millisecond)
+		for _, client := range []*TestClient{client1, client2} {
+			// client1
+			itemMessages := client.MustFindItemStateMessages(t)
+			require.Len(t, itemMessages, 1)
+			assert.Equal(t, shared.ItemType_BULLET, itemMessages[0].Type)
+			assert.Equal(t, shared.ItemStatus_ACTIVE, itemMessages[0].Status)
+			assert.Equal(t, int32(12), itemMessages[0].Position.X, "右向きに発射され、さらに1進んだ値")
+			assert.Equal(t, int32(20), itemMessages[0].Position.Y)
+		}
+
+		// さらに1マス進むのを待ち、受け取れることを確認
+		time.Sleep(550 * time.Millisecond)
+		for _, client := range []*TestClient{client1, client2} {
+			itemMessages := client.MustFindItemStateMessages(t)
+			require.Len(t, itemMessages, 2)
+			assert.Equal(t, int32(13), itemMessages[1].Position.X, "さらに1マス進んた値")
+			assert.Equal(t, int32(20), itemMessages[1].Position.Y)
+		}
 	})
 }
