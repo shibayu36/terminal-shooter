@@ -60,6 +60,7 @@ issues:
         - gosec
         - exhaustruct
         - funlen
+        - wrapcheck
     # Exclude protobuf generated files from linting
     - path: shared/proto/*.pb.go
       linters:

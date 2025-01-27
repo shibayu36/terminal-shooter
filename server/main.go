@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,22 +16,31 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	options := &runOptions{
+		MQTTPort:    "1883",
+		MetricsPort: "2112",
+	}
+	if err := run(context.Background(), options); err != nil {
 		slog.Error(fmt.Sprintf("failed to run\n%+v", err))
 		os.Exit(1)
 	}
 }
 
-//nolint:funlen
-func run() error {
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+type runOptions struct {
+	MQTTPort    string
+	MetricsPort string
+}
+
+func run(ctx context.Context, opts *runOptions) error {
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	broker := NewBroker()
 
 	gameState := game.NewGame(30, 30)
 	controller := NewController(broker, gameState)
-	server, err := NewServer(":1883", controller)
+
+	server, err := NewServer(":"+opts.MQTTPort, controller)
 	if err != nil {
 		return err
 	}
@@ -46,28 +54,10 @@ func run() error {
 	updatedCh := gameState.StartUpdateLoop(ctx)
 	controller.StartPublishLoop(ctx, updatedCh)
 
-	ticker := time.NewTicker(1234 * time.Millisecond)
-	defer ticker.Stop()
-	go func() {
-		for range ticker.C {
-			directions := []game.Direction{
-				game.DirectionUp,
-				game.DirectionDown,
-				game.DirectionLeft,
-				game.DirectionRight,
-			}
-			//nolint:gosec
-			gameState.AddBullet(
-				game.Position{X: rand.Intn(30), Y: rand.Intn(30)},
-				directions[rand.Intn(4)],
-			)
-		}
-	}()
-
 	// Prometheusメトリクスサーバーの起動
 	//nolint:exhaustruct,gosec
 	metricsServer := &http.Server{
-		Addr:    ":2112",
+		Addr:    ":" + opts.MetricsPort,
 		Handler: promhttp.Handler(),
 	}
 	go func() {
@@ -85,7 +75,7 @@ func run() error {
 	}
 
 	{
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		if err := metricsServer.Shutdown(ctx); err != nil {
 			panic(err)
