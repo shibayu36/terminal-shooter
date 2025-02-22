@@ -120,6 +120,31 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 	}
 }
 
+// detectCollisions は現在のゲーム状態から衝突しているオブジェクトのペアを検出する
+func (g *Game) detectCollisions() []Collision {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	var collisions []Collision
+
+	// プレイヤーと弾の衝突を検出
+	itemPosMap := make(map[Position][]Item)
+	for _, item := range g.Items {
+		itemPosMap[item.Position()] = append(itemPosMap[item.Position()], item)
+	}
+
+	for _, player := range g.Players {
+		for _, item := range itemPosMap[player.Position()] {
+			collisions = append(collisions, Collision{
+				Obj1: player,
+				Obj2: item,
+			})
+		}
+	}
+
+	return collisions
+}
+
 // アイテムが盤面内にあるかどうかを判定する
 func (g *Game) isWithinBounds(item Item) bool {
 	pos := item.Position()

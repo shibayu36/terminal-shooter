@@ -61,3 +61,7 @@ func (b *Bullet) Update() bool {
 	}
 	return false
 }
+
+func (b *Bullet) OnCollideWith(other Collidable, svc GameCollisionService) bool {
+	return false
+}

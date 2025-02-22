@@ -25,6 +25,8 @@ type Player struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
+var _ Collidable = (*Player)(nil)
+
 func (p *Player) Position() Position {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -96,4 +98,8 @@ func (ps PlayerStatus) ToSharedStatus() shared.Status {
 	default:
 		panic(fmt.Sprintf("invalid player status: %s", ps))
 	}
+}
+
+func (p *Player) OnCollideWith(other Collidable, svc GameCollisionService) bool {
+	return false
 }
