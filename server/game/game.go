@@ -93,21 +93,13 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 		}
 	}
 
-	// プレイヤーとアイテムの衝突をチェックする
-	itemPosMap := make(map[Position][]Item)
-	for _, item := range g.GetItems() {
-		itemPosMap[item.Position()] = append(itemPosMap[item.Position()], item)
-	}
+	for _, collision := range g.detectCollisions() {
+		if collision.Player.OnCollideWith(collision.Item, g) {
+			updatedPlayers = append(updatedPlayers, collision.Player)
+		}
 
-	for _, player := range g.GetPlayers() {
-		for _, item := range itemPosMap[player.Position()] {
-			if bullet, ok := item.(*Bullet); ok {
-				g.UpdatePlayerStatus(player.PlayerID, PlayerStatusDead)
-				g.RemoveItem(bullet.ID())
-
-				updatedPlayers = append(updatedPlayers, player)
-				updatedItems = append(updatedItems, item)
-			}
+		if collision.Item.OnCollideWith(collision.Player, g) {
+			updatedItems = append(updatedItems, collision.Item)
 		}
 	}
 
@@ -136,8 +128,8 @@ func (g *Game) detectCollisions() []Collision {
 	for _, player := range g.Players {
 		for _, item := range itemPosMap[player.Position()] {
 			collisions = append(collisions, Collision{
-				Obj1: player,
-				Obj2: item,
+				Player: player,
+				Item:   item,
 			})
 		}
 	}

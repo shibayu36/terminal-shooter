@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_Game(t *testing.T) {
@@ -230,12 +229,7 @@ func Test_Game_detectCollisions(t *testing.T) {
 		}
 
 		for _, collision := range collisions {
-			p, ok := collision.Obj1.(*Player)
-			require.True(t, ok)
-			i, ok := collision.Obj2.(*Bullet)
-			require.True(t, ok)
-
-			assert.Equal(t, expected[p.PlayerID], i.ID())
+			assert.Equal(t, expected[collision.Player.PlayerID], collision.Item.ID())
 		}
 	})
 

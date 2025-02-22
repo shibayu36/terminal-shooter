@@ -13,8 +13,8 @@ type Collidable interface {
 	OnCollideWith(other Collidable, svc GameCollisionService) bool
 }
 
-// Collision は2つのオブジェクト間の衝突を表す
+// Collision はPlayerとItem間の衝突を表す
 type Collision struct {
-	Obj1 Collidable
-	Obj2 Collidable
+	Player *Player
+	Item   Item
 }

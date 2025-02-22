@@ -63,5 +63,12 @@ func (b *Bullet) Update() bool {
 }
 
 func (b *Bullet) OnCollideWith(other Collidable, svc GameCollisionService) bool {
-	return false
+	switch other.(type) {
+	case *Player:
+		// プレイヤーと衝突したら自分自身は消滅
+		svc.RemoveItem(b.ID())
+		return true
+	default:
+		return false
+	}
 }
