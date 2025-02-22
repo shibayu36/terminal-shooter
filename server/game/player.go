@@ -25,7 +25,7 @@ type Player struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
-var _ Collidable = (*Player)(nil)
+var _ collidable = (*Player)(nil)
 
 func (p *Player) Position() Position {
 	p.mu.RLock()
@@ -100,7 +100,7 @@ func (ps PlayerStatus) ToSharedStatus() shared.Status {
 	}
 }
 
-func (p *Player) OnCollideWith(other Collidable, svc GameCollisionService) bool {
+func (p *Player) OnCollideWith(other collidable, svc gameCollisionService) bool {
 	switch other.(type) {
 	case *Bullet:
 		// 弾と衝突したらプレイヤーはDEAD

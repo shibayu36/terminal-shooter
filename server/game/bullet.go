@@ -62,7 +62,7 @@ func (b *Bullet) Update() bool {
 	return false
 }
 
-func (b *Bullet) OnCollideWith(other Collidable, svc GameCollisionService) bool {
+func (b *Bullet) OnCollideWith(other collidable, svc gameCollisionService) bool {
 	switch other.(type) {
 	case *Player:
 		// プレイヤーと衝突したら自分自身は消滅

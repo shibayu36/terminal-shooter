@@ -26,7 +26,7 @@ type Game struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
-var _ GameCollisionService = (*Game)(nil)
+var _ gameCollisionService = (*Game)(nil)
 
 func NewGame(width, height int) *Game {
 	return &Game{
@@ -113,11 +113,11 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 }
 
 // detectCollisions は現在のゲーム状態から衝突しているオブジェクトのペアを検出する
-func (g *Game) detectCollisions() []Collision {
+func (g *Game) detectCollisions() []collision {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	var collisions []Collision
+	var collisions []collision
 
 	// プレイヤーと弾の衝突を検出
 	itemPosMap := make(map[Position][]Item)
@@ -127,7 +127,7 @@ func (g *Game) detectCollisions() []Collision {
 
 	for _, player := range g.Players {
 		for _, item := range itemPosMap[player.Position()] {
-			collisions = append(collisions, Collision{
+			collisions = append(collisions, collision{
 				Player: player,
 				Item:   item,
 			})
