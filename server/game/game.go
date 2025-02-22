@@ -26,6 +26,8 @@ type Game struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
+var _ GameCollisionService = (*Game)(nil)
+
 func NewGame(width, height int) *Game {
 	return &Game{
 		Width:        width,
