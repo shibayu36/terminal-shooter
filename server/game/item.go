@@ -7,6 +7,7 @@ const (
 )
 
 type Item interface {
+	collidable
 	ID() ItemID
 	Type() ItemType
 	Position() Position

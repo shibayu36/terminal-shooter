@@ -25,6 +25,8 @@ type Player struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
+var _ collidable = (*Player)(nil)
+
 func (p *Player) Position() Position {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -95,5 +97,17 @@ func (ps PlayerStatus) ToSharedStatus() shared.Status {
 		return shared.Status_DEAD
 	default:
 		panic(fmt.Sprintf("invalid player status: %s", ps))
+	}
+}
+
+func (p *Player) OnCollideWith(other collidable, svc gameCollisionService) bool {
+	switch other.(type) {
+	case *Bullet:
+		// 弾と衝突したらプレイヤーはDEAD
+		// TODO: 本来はプレイヤーのステータスをPlayer struct自体が持ちたい
+		svc.UpdatePlayerStatus(p.PlayerID, PlayerStatusDead)
+		return true
+	default:
+		return false
 	}
 }

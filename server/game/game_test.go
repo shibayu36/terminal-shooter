@@ -199,6 +199,54 @@ func Test_Game_update_checkCollisions(t *testing.T) {
 	})
 }
 
+func Test_Game_detectCollisions(t *testing.T) {
+	t.Run("プレイヤーと弾の衝突を検出できる", func(t *testing.T) {
+		game := NewGame(30, 30)
+
+		collidedPlayerID1 := PlayerID("player1")
+		game.AddPlayer(collidedPlayerID1)
+		game.MovePlayer(collidedPlayerID1, Position{X: 2, Y: 3}, DirectionRight)
+
+		collidedPlayerID2 := PlayerID("player2")
+		game.AddPlayer(collidedPlayerID2)
+		game.MovePlayer(collidedPlayerID2, Position{X: 1, Y: 4}, DirectionRight)
+
+		otherPlayerID := PlayerID("player3")
+		game.AddPlayer(otherPlayerID)
+		game.MovePlayer(otherPlayerID, Position{X: 1, Y: 3}, DirectionRight)
+
+		collidedBulletID1 := game.AddBullet(Position{X: 2, Y: 3}, DirectionRight)
+		collidedBulletID2 := game.AddBullet(Position{X: 1, Y: 4}, DirectionRight)
+
+		game.AddBullet(Position{X: 5, Y: 5}, DirectionRight)
+
+		collisions := game.detectCollisions()
+		assert.Len(t, collisions, 2)
+
+		expected := map[PlayerID]ItemID{
+			collidedPlayerID1: collidedBulletID1,
+			collidedPlayerID2: collidedBulletID2,
+		}
+
+		for _, collision := range collisions {
+			assert.Equal(t, expected[collision.Player.PlayerID], collision.Item.ID())
+		}
+	})
+
+	t.Run("どれも衝突していない", func(t *testing.T) {
+		game := NewGame(30, 30)
+
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
+
+		game.AddBullet(Position{X: 1, Y: 4}, DirectionRight)
+
+		collisions := game.detectCollisions()
+		assert.Empty(t, collisions)
+	})
+}
+
 func Test_Game_isWithinBounds(t *testing.T) {
 	testCases := []struct {
 		name     string
