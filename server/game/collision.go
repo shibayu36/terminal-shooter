@@ -9,7 +9,8 @@ type GameCollisionService interface {
 // Collidable は衝突判定可能なオブジェクトを表すインターフェース
 type Collidable interface {
 	Position() Position
-	OnCollideWith(other Collidable, svc GameCollisionService)
+	// 衝突時の処理を行う。自身の状態が変更された場合はtrueを返す
+	OnCollideWith(other Collidable, svc GameCollisionService) bool
 }
 
 // Collision は2つのオブジェクト間の衝突を表す
