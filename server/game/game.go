@@ -265,6 +265,28 @@ func (g *Game) ShootBullet(playerID PlayerID) ItemID {
 	return bullet.ID()
 }
 
+// あるプレイヤーからボムを設置する
+func (g *Game) PlaceBomb(playerID PlayerID) ItemID {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	player, ok := g.Players[playerID]
+	if !ok {
+		return ""
+	}
+
+	// deadの場合はボムを設置できない
+	if player.Status() == PlayerStatusDead {
+		return ""
+	}
+
+	// プレイヤーの位置にボムを設置
+	bomb := NewBomb(ItemID(uuid.New().String()), player.Position())
+	g.Items[bomb.ID()] = bomb
+
+	return bomb.ID()
+}
+
 // GetState ゲームの状態をデバッグ用に表示する
 func (g *Game) String() string {
 	g.mu.RLock()

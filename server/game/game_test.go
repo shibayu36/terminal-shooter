@@ -393,3 +393,35 @@ func Test_Game_ShootBullet(t *testing.T) {
 		assert.Empty(t, bulletID)
 	})
 }
+
+func Test_Game_PlaceBomb(t *testing.T) {
+	t.Run("プレイヤーがボムを設置できる", func(t *testing.T) {
+		game := NewGame(30, 30)
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.MovePlayer(playerID, Position{X: 3, Y: 8}, DirectionRight)
+
+		bombID := game.PlaceBomb(playerID)
+		assert.NotEmpty(t, bombID)
+
+		// player1と同じ位置にボムが設置されていること
+		bomb, ok := (game.GetItems()[bombID]).(*Bomb)
+		assert.True(t, ok)
+		assert.Equal(t, Position{X: 3, Y: 8}, bomb.Position())
+	})
+
+	t.Run("存在しないプレイヤーからボムを設置すると何もしない", func(t *testing.T) {
+		game := NewGame(30, 30)
+		bombID := game.PlaceBomb(PlayerID("player1"))
+		assert.Empty(t, bombID)
+	})
+
+	t.Run("deadのプレイヤーからボムを設置すると何もしない", func(t *testing.T) {
+		game := NewGame(30, 30)
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.UpdatePlayerStatus(playerID, PlayerStatusDead)
+		bombID := game.PlaceBomb(playerID)
+		assert.Empty(t, bombID)
+	})
+}
