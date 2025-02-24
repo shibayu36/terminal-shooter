@@ -4,6 +4,7 @@ type ItemType string
 
 const (
 	ItemTypeBullet ItemType = "bullet"
+	ItemTypeBomb   ItemType = "bomb"
 )
 
 type Item interface {
