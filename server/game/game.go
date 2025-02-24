@@ -242,7 +242,9 @@ func (g *Game) RemoveItem(itemID ItemID) {
 func (g *Game) addItem(item Item) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	g.Items[item.ID()] = item
+	if g.isWithinBounds(item) {
+		g.Items[item.ID()] = item
+	}
 }
 
 // 弾を追加する
