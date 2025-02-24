@@ -150,6 +150,8 @@ func (c *Controller) onReceivePlayerAction(client Client, publishPacket *packets
 	switch playerActionRequest.GetType() {
 	case shared.ActionType_SHOOT_BULLET:
 		c.game.ShootBullet(playerID)
+	case shared.ActionType_PLACE_BOMB:
+		c.game.PlaceBomb(playerID)
 	}
 
 	return nil
@@ -189,9 +191,17 @@ func (c *Controller) publishStates(updatedResult game.UpdatedResult) {
 func (c *Controller) publishItemStates() {
 	// Activeなアイテムを送信する
 	for _, item := range c.game.GetItems() {
+		var itemType shared.ItemType
+		switch item.Type() {
+		case game.ItemTypeBullet:
+			itemType = shared.ItemType_BULLET
+		case game.ItemTypeBomb:
+			itemType = shared.ItemType_BOMB
+		}
+
 		itemState := &shared.ItemState{
 			ItemId: string(item.ID()),
-			Type:   shared.ItemType_BULLET,
+			Type:   itemType,
 			Position: &shared.Position{
 				X: int32(item.Position().X),
 				Y: int32(item.Position().Y),
