@@ -146,7 +146,6 @@ func (c *Controller) onReceivePlayerAction(client Client, publishPacket *packets
 		return errors.Wrap(err, "failed to unmarshal player action request")
 	}
 
-	//nolint:gocritic // GetType()が増えることを見越してsingleCaseSwitchをignore
 	switch playerActionRequest.GetType() {
 	case shared.ActionType_SHOOT_BULLET:
 		c.game.ShootBullet(playerID)

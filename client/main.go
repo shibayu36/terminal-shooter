@@ -230,7 +230,7 @@ func (g *Game) draw() {
 	for _, item := range g.items {
 		var r rune
 		style := itemStyle
-		//nolint:gocritic
+
 		switch item.Type {
 		case shared.ItemType_BULLET:
 			r = '*'

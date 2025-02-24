@@ -73,5 +73,5 @@ func Test_Bomb(t *testing.T) {
 	for _, item := range items {
 		assert.True(t, item.Update(game))
 	}
-	assert.Len(t, game.GetItems(), 0)
+	assert.Empty(t, game.GetItems())
 }
