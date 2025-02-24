@@ -30,6 +30,7 @@ type Game struct {
 type gameOperationProvider interface {
 	RemoveItem(id ItemID)
 	UpdatePlayerStatus(playerID PlayerID, status PlayerStatus) *Player
+	addItem(item Item)
 }
 
 var _ gameOperationProvider = (*Game)(nil)
@@ -234,6 +235,14 @@ func (g *Game) RemoveItem(itemID ItemID) {
 	}
 	delete(g.Items, itemID)
 	g.RemovedItems[itemID] = item
+}
+
+// アイテムを追加する。
+// アイテムなどのUpdateやOnCollideWithのために必要なprimitive操作
+func (g *Game) addItem(item Item) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.Items[item.ID()] = item
 }
 
 // 弾を追加する

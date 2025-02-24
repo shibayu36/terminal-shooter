@@ -3,8 +3,9 @@ package game
 type ItemType string
 
 const (
-	ItemTypeBullet ItemType = "bullet"
-	ItemTypeBomb   ItemType = "bomb"
+	ItemTypeBullet   ItemType = "bullet"
+	ItemTypeBomb     ItemType = "bomb"
+	ItemTypeBombFire ItemType = "bomb_fire"
 )
 
 type Item interface {
