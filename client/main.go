@@ -106,7 +106,7 @@ func (g *Game) movePlayer(direction shared.Direction) {
 }
 
 func (g *Game) handleEvent(event tcell.Event) bool {
-	//nolint:gocritic // ignore singleCaseSwitch
+	//nolint:gocritic,varnamelen // ignore singleCaseSwitch
 	switch ev := event.(type) {
 	case *tcell.EventKey:
 		//nolint:exhaustive
@@ -194,6 +194,7 @@ const (
 	fireColor        = tcell.Color196
 )
 
+//nolint:funlen
 func (g *Game) draw() {
 	g.screen.Clear()
 
