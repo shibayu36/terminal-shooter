@@ -197,6 +197,8 @@ func (c *Controller) publishItemStates() {
 			itemType = shared.ItemType_BULLET
 		case game.ItemTypeBomb:
 			itemType = shared.ItemType_BOMB
+		case game.ItemTypeBombFire:
+			itemType = shared.ItemType_BOMB_FIRE
 		}
 
 		itemState := &shared.ItemState{
