@@ -283,6 +283,7 @@ func (g *Game) ShootBullet(playerID PlayerID) ItemID {
 }
 
 // あるプレイヤーからボムを設置する
+// TODO: 追加した時に更新通知する必要がある
 func (g *Game) PlaceBomb(playerID PlayerID) ItemID {
 	g.mu.Lock()
 	defer g.mu.Unlock()
