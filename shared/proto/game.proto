@@ -55,6 +55,8 @@ enum Status {
 // アイテムの種類
 enum ItemType {
   BULLET = 0;
+  BOMB = 1;
+  BOMB_FIRE = 2;
 }
 
 // プレイヤーからのアクション
@@ -66,4 +68,5 @@ message PlayerActionRequest {
 // プレイヤーからのアクションの種類
 enum ActionType {
   SHOOT_BULLET = 0;
+  PLACE_BOMB = 1;
 }
