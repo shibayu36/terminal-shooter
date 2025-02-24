@@ -78,6 +78,11 @@ func (b *Bomb) Update(provider gameOperationProvider) bool {
 	return false
 }
 
+// OnCollideWith 他のオブジェクトと衝突した時の処理
+func (b *Bomb) OnCollideWith(other collidable, provider gameOperationProvider) bool {
+	return false
+}
+
 // BombFire ボムの爆発による火を表す
 type BombFire struct {
 	id       ItemID
@@ -123,11 +128,6 @@ func (bf *BombFire) Update(provider gameOperationProvider) bool {
 		return true
 	}
 
-	return false
-}
-
-// OnCollideWith 他のオブジェクトと衝突した時の処理
-func (b *Bomb) OnCollideWith(other collidable, provider gameOperationProvider) bool {
 	return false
 }
 
