@@ -191,19 +191,9 @@ func (c *Controller) publishStates(updatedResult game.UpdatedResult) {
 func (c *Controller) publishItemStates() {
 	// Activeなアイテムを送信する
 	for _, item := range c.game.GetItems() {
-		var itemType shared.ItemType
-		switch item.Type() {
-		case game.ItemTypeBullet:
-			itemType = shared.ItemType_BULLET
-		case game.ItemTypeBomb:
-			itemType = shared.ItemType_BOMB
-		case game.ItemTypeBombFire:
-			itemType = shared.ItemType_BOMB_FIRE
-		}
-
 		itemState := &shared.ItemState{
 			ItemId: string(item.ID()),
-			Type:   itemType,
+			Type:   item.Type().ToSharedItemType(),
 			Position: &shared.Position{
 				X: int32(item.Position().X),
 				Y: int32(item.Position().Y),
