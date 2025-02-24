@@ -100,12 +100,12 @@ func (ps PlayerStatus) ToSharedStatus() shared.Status {
 	}
 }
 
-func (p *Player) OnCollideWith(other collidable, svc gameCollisionService) bool {
+func (p *Player) OnCollideWith(other collidable, provider gameOperationProvider) bool {
 	switch other.(type) {
 	case *Bullet:
 		// 弾と衝突したらプレイヤーはDEAD
 		// TODO: 本来はプレイヤーのステータスをPlayer struct自体が持ちたい
-		svc.UpdatePlayerStatus(p.PlayerID, PlayerStatusDead)
+		provider.UpdatePlayerStatus(p.PlayerID, PlayerStatusDead)
 		return true
 	default:
 		return false

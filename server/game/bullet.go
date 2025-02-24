@@ -41,7 +41,7 @@ func (b *Bullet) Position() Position {
 	return b.position
 }
 
-func (b *Bullet) Update() bool {
+func (b *Bullet) Update(_ gameOperationProvider) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.tick++
@@ -62,11 +62,11 @@ func (b *Bullet) Update() bool {
 	return false
 }
 
-func (b *Bullet) OnCollideWith(other collidable, svc gameCollisionService) bool {
+func (b *Bullet) OnCollideWith(other collidable, provider gameOperationProvider) bool {
 	switch other.(type) {
 	case *Player:
 		// プレイヤーと衝突したら自分自身は消滅
-		svc.RemoveItem(b.ID())
+		provider.RemoveItem(b.ID())
 		return true
 	default:
 		return false

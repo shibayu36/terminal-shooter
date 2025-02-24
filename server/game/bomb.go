@@ -38,7 +38,7 @@ func (b *Bomb) Position() Position {
 }
 
 // Update 状態を更新する
-func (b *Bomb) Update() bool {
+func (b *Bomb) Update(provider gameOperationProvider) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.tick++
@@ -46,6 +46,6 @@ func (b *Bomb) Update() bool {
 }
 
 // OnCollideWith 他のオブジェクトと衝突した時の処理
-func (b *Bomb) OnCollideWith(other collidable, service gameCollisionService) bool {
+func (b *Bomb) OnCollideWith(other collidable, provider gameOperationProvider) bool {
 	return false
 }

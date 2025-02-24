@@ -26,7 +26,13 @@ type Game struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
-var _ gameCollisionService = (*Game)(nil)
+// gameOperationProvider はアイテム更新や衝突時に必要な操作を提供するインターフェース。Gameのメソッドの一部だけを公開する
+type gameOperationProvider interface {
+	RemoveItem(id ItemID)
+	UpdatePlayerStatus(playerID PlayerID, status PlayerStatus) *Player
+}
+
+var _ gameOperationProvider = (*Game)(nil)
 
 func NewGame(width, height int) *Game {
 	return &Game{
@@ -82,7 +88,7 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 	updatedPlayers := []*Player{}
 
 	for _, item := range items {
-		if item.Update() {
+		if item.Update(g) {
 			updatedItems = append(updatedItems, item)
 		}
 	}

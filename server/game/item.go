@@ -12,5 +12,5 @@ type Item interface {
 	ID() ItemID
 	Type() ItemType
 	Position() Position
-	Update() (updated bool)
+	Update(provider gameOperationProvider) bool
 }
