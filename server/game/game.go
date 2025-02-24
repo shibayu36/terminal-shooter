@@ -26,7 +26,14 @@ type Game struct {
 	mu sync.RWMutex `exhaustruct:"optional"`
 }
 
-var _ gameCollisionService = (*Game)(nil)
+// gameOperationProvider はアイテム更新や衝突時に必要な操作を提供するインターフェース。Gameのメソッドの一部だけを公開する
+type gameOperationProvider interface {
+	RemoveItem(id ItemID)
+	UpdatePlayerStatus(playerID PlayerID, status PlayerStatus) *Player
+	addItem(item Item)
+}
+
+var _ gameOperationProvider = (*Game)(nil)
 
 func NewGame(width, height int) *Game {
 	return &Game{
@@ -82,7 +89,7 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 	updatedPlayers := []*Player{}
 
 	for _, item := range items {
-		if item.Update() {
+		if item.Update(g) {
 			updatedItems = append(updatedItems, item)
 		}
 	}
@@ -230,6 +237,16 @@ func (g *Game) RemoveItem(itemID ItemID) {
 	g.RemovedItems[itemID] = item
 }
 
+// アイテムを追加する。
+// アイテムなどのUpdateやOnCollideWithのために必要なprimitive操作
+func (g *Game) addItem(item Item) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.isWithinBounds(item) {
+		g.Items[item.ID()] = item
+	}
+}
+
 // 弾を追加する
 func (g *Game) AddBullet(position Position, direction Direction) ItemID {
 	g.mu.Lock()
@@ -263,6 +280,29 @@ func (g *Game) ShootBullet(playerID PlayerID) ItemID {
 	g.Items[bullet.ID()] = bullet
 
 	return bullet.ID()
+}
+
+// あるプレイヤーからボムを設置する
+// TODO: 追加した時に更新通知する必要がある
+func (g *Game) PlaceBomb(playerID PlayerID) ItemID {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	player, ok := g.Players[playerID]
+	if !ok {
+		return ""
+	}
+
+	// deadの場合はボムを設置できない
+	if player.Status() == PlayerStatusDead {
+		return ""
+	}
+
+	// プレイヤーの位置にボムを設置
+	bomb := NewBomb(ItemID(uuid.New().String()), player.Position())
+	g.Items[bomb.ID()] = bomb
+
+	return bomb.ID()
 }
 
 // GetState ゲームの状態をデバッグ用に表示する

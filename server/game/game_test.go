@@ -118,6 +118,36 @@ func Test_Game_update(t *testing.T) {
 		assert.Len(t, updatedCh, 2)
 	})
 
+	t.Run("ボムを配置して180回更新すると爆発する", func(t *testing.T) {
+		updatedCh := make(chan UpdatedResult, 10)
+		game := NewGame(30, 30)
+
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.MovePlayer(playerID, Position{X: 5, Y: 8}, DirectionRight)
+
+		bombID := game.PlaceBomb(playerID)
+		assert.NotEmpty(t, bombID)
+
+		for range 179 {
+			game.update(updatedCh)
+		}
+		// まだ爆発前
+		bomb, ok := game.Items[bombID].(*Bomb)
+		assert.True(t, ok)
+		assert.Equal(t, Position{X: 5, Y: 8}, bomb.Position())
+
+		// 180回目に爆発する
+		game.update(updatedCh)
+		game.update(updatedCh)
+		assert.Len(t, game.GetItems(), 17, "爆発したので17個のBombFireが残っている")
+		assert.Len(t, game.GetRemovedItems(), 1)
+		assert.NotEmpty(t, game.GetRemovedItems()[bombID])
+
+		// 火の位置にプレイヤーがいるのでプレイヤーは死ぬ
+		assert.Equal(t, PlayerStatusDead, game.GetPlayers()[playerID].Status())
+	})
+
 	t.Run("アイテムが盤面外に出たら削除される", func(t *testing.T) {
 		updatedCh := make(chan UpdatedResult, 10)
 		game := NewGame(30, 30)
@@ -391,5 +421,37 @@ func Test_Game_ShootBullet(t *testing.T) {
 		game.UpdatePlayerStatus(playerID, PlayerStatusDead)
 		bulletID := game.ShootBullet(playerID)
 		assert.Empty(t, bulletID)
+	})
+}
+
+func Test_Game_PlaceBomb(t *testing.T) {
+	t.Run("プレイヤーがボムを設置できる", func(t *testing.T) {
+		game := NewGame(30, 30)
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.MovePlayer(playerID, Position{X: 3, Y: 8}, DirectionRight)
+
+		bombID := game.PlaceBomb(playerID)
+		assert.NotEmpty(t, bombID)
+
+		// player1と同じ位置にボムが設置されていること
+		bomb, ok := (game.GetItems()[bombID]).(*Bomb)
+		assert.True(t, ok)
+		assert.Equal(t, Position{X: 3, Y: 8}, bomb.Position())
+	})
+
+	t.Run("存在しないプレイヤーからボムを設置すると何もしない", func(t *testing.T) {
+		game := NewGame(30, 30)
+		bombID := game.PlaceBomb(PlayerID("player1"))
+		assert.Empty(t, bombID)
+	})
+
+	t.Run("deadのプレイヤーからボムを設置すると何もしない", func(t *testing.T) {
+		game := NewGame(30, 30)
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.UpdatePlayerStatus(playerID, PlayerStatusDead)
+		bombID := game.PlaceBomb(playerID)
+		assert.Empty(t, bombID)
 	})
 }

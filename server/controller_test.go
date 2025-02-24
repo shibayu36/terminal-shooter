@@ -205,6 +205,42 @@ func TestController_OnPublished_PlayerAction_ShootBullet(t *testing.T) {
 	assert.Equal(t, game.Position{X: 6, Y: 10}, bullet.Position())
 }
 
+func TestController_OnPublished_PlayerAction_PlaceBomb(t *testing.T) {
+	broker := NewBroker()
+	state := game.NewGame(30, 30)
+	controller := NewController(broker, state)
+
+	cl1 := &mockClient{id: "id1"}
+	err := controller.OnConnected(cl1, nil)
+	require.NoError(t, err)
+
+	// cl1の位置を更新する
+	state.MovePlayer(game.PlayerID("id1"), game.Position{X: 5, Y: 10}, game.DirectionRight)
+
+	// cl1からのplayer_action PlaceBombを受信する
+	{
+		payload, err := proto.Marshal(&shared.PlayerActionRequest{
+			Type: shared.ActionType_PLACE_BOMB,
+		})
+		require.NoError(t, err)
+
+		packet := &packets.PublishPacket{
+			TopicName: "player_action",
+			Payload:   payload,
+		}
+
+		err = controller.OnPublished(cl1, packet)
+		require.NoError(t, err)
+	}
+
+	// cli1の位置に爆弾が置かれている
+	items := slices.Collect(maps.Values(state.GetItems()))
+	assert.Len(t, items, 1)
+	bomb := items[0]
+	assert.Equal(t, game.ItemTypeBomb, bomb.Type())
+	assert.Equal(t, game.Position{X: 5, Y: 10}, bomb.Position())
+}
+
 func TestController_OnDisconnected(t *testing.T) {
 	// 切断したら、そのプレイヤーを削除し、そのプレイヤーが切断したことを全員に送信する
 

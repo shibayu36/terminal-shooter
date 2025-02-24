@@ -61,6 +61,7 @@ issues:
         - exhaustruct
         - funlen
         - wrapcheck
+        - dupl
     # Exclude protobuf generated files from linting
     - path: shared/proto/*.pb.go
       linters:

@@ -106,7 +106,7 @@ func (g *Game) movePlayer(direction shared.Direction) {
 }
 
 func (g *Game) handleEvent(event tcell.Event) bool {
-	//nolint:gocritic // ignore singleCaseSwitch
+	//nolint:gocritic,varnamelen // ignore singleCaseSwitch
 	switch ev := event.(type) {
 	case *tcell.EventKey:
 		//nolint:exhaustive
@@ -124,6 +124,8 @@ func (g *Game) handleEvent(event tcell.Event) bool {
 		case tcell.KeyRune:
 			if ev.Rune() == ' ' {
 				g.shootBullet()
+			} else if ev.Rune() == 'b' {
+				g.placeBomb()
 			}
 		}
 	}
@@ -145,6 +147,21 @@ func (g *Game) shootBullet() {
 	if token.Wait() && token.Error() != nil {
 		log.Printf("Failed to publish player action request: %v", token.Error())
 		return
+	}
+}
+
+func (g *Game) placeBomb() {
+	actionReq := &shared.PlayerActionRequest{
+		Type: shared.ActionType_PLACE_BOMB,
+	}
+	payload, err := proto.Marshal(actionReq)
+	if err != nil {
+		log.Printf("Failed to marshal player action request: %v", err)
+		return
+	}
+
+	if token := g.mqtt.Publish("player_action", 0, false, payload); token.Wait() && token.Error() != nil {
+		log.Printf("Failed to publish player action: %v", token.Error())
 	}
 }
 
@@ -173,8 +190,11 @@ const (
 	myPlayerColor    = tcell.Color46
 	otherPlayerColor = tcell.Color196
 	itemColor        = tcell.Color226
+	bombColor        = tcell.Color208
+	fireColor        = tcell.Color196
 )
 
+//nolint:funlen
 func (g *Game) draw() {
 	g.screen.Clear()
 
@@ -209,18 +229,25 @@ func (g *Game) draw() {
 	// アイテムを描画
 	itemStyle := defaultStyle.Foreground(itemColor)
 	for _, item := range g.items {
-		var r rune
-		//nolint:gocritic
+		var itemRune rune
+		style := itemStyle
+
 		switch item.Type {
 		case shared.ItemType_BULLET:
-			r = '*'
+			itemRune = '*'
+		case shared.ItemType_BOMB:
+			itemRune = '@'
+			style = defaultStyle.Foreground(bombColor)
+		case shared.ItemType_BOMB_FIRE:
+			itemRune = '#'
+			style = defaultStyle.Foreground(fireColor)
 		}
 		g.screen.SetContent(
 			item.Position.X,
 			item.Position.Y,
-			r,
+			itemRune,
 			nil,
-			itemStyle,
+			style,
 		)
 	}
 
