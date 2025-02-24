@@ -229,23 +229,23 @@ func (g *Game) draw() {
 	// アイテムを描画
 	itemStyle := defaultStyle.Foreground(itemColor)
 	for _, item := range g.items {
-		var r rune
+		var itemRune rune
 		style := itemStyle
 
 		switch item.Type {
 		case shared.ItemType_BULLET:
-			r = '*'
+			itemRune = '*'
 		case shared.ItemType_BOMB:
-			r = '@'
+			itemRune = '@'
 			style = defaultStyle.Foreground(bombColor)
 		case shared.ItemType_BOMB_FIRE:
-			r = '#'
+			itemRune = '#'
 			style = defaultStyle.Foreground(fireColor)
 		}
 		g.screen.SetContent(
 			item.Position.X,
 			item.Position.Y,
-			r,
+			itemRune,
 			nil,
 			style,
 		)
