@@ -20,6 +20,10 @@ type Game struct {
 	Players map[PlayerID]*Player
 	Items   map[ItemID]Item
 
+	// 新しく追加されたアイテムを管理する
+	// 1tickごとにFlushされる
+	AddedItems map[ItemID]Item
+
 	// 削除されたアイテムを管理する
 	RemovedItems map[ItemID]Item
 
@@ -41,6 +45,7 @@ func NewGame(width, height int) *Game {
 		Height:       height,
 		Players:      make(map[PlayerID]*Player),
 		Items:        make(map[ItemID]Item),
+		AddedItems:   make(map[ItemID]Item),
 		RemovedItems: make(map[ItemID]Item),
 	}
 }
@@ -109,6 +114,14 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 			updatedItems = append(updatedItems, collision.Item)
 		}
 	}
+
+	// 新しく追加されたアイテムがあれば追加してFlushする
+	g.mu.Lock()
+	for _, item := range g.AddedItems {
+		updatedItems = append(updatedItems, item)
+	}
+	g.AddedItems = make(map[ItemID]Item)
+	g.mu.Unlock()
 
 	if len(updatedItems) > 0 {
 		updatedCh <- UpdatedResult{Type: UpdatedResultTypeItemsUpdated}
@@ -237,14 +250,20 @@ func (g *Game) RemoveItem(itemID ItemID) {
 	g.RemovedItems[itemID] = item
 }
 
+// アイテム追加をLockなしで行う内部メソッド
+func (g *Game) addItemWithoutLock(item Item) {
+	if g.isWithinBounds(item) {
+		g.Items[item.ID()] = item
+		g.AddedItems[item.ID()] = item
+	}
+}
+
 // アイテムを追加する。
 // アイテムなどのUpdateやOnCollideWithのために必要なprimitive操作
 func (g *Game) addItem(item Item) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if g.isWithinBounds(item) {
-		g.Items[item.ID()] = item
-	}
+	g.addItemWithoutLock(item)
 }
 
 // 弾を追加する
@@ -252,7 +271,7 @@ func (g *Game) AddBullet(position Position, direction Direction) ItemID {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
-	g.Items[bullet.ID()] = bullet
+	g.addItemWithoutLock(bullet)
 	return bullet.ID()
 }
 
@@ -277,7 +296,7 @@ func (g *Game) ShootBullet(playerID PlayerID) ItemID {
 	direction := player.Direction()
 
 	bullet := NewBullet(ItemID(uuid.New().String()), position, direction)
-	g.Items[bullet.ID()] = bullet
+	g.addItemWithoutLock(bullet)
 
 	return bullet.ID()
 }
@@ -300,7 +319,7 @@ func (g *Game) PlaceBomb(playerID PlayerID) ItemID {
 
 	// プレイヤーの位置にボムを設置
 	bomb := NewBomb(ItemID(uuid.New().String()), player.Position())
-	g.Items[bomb.ID()] = bomb
+	g.addItemWithoutLock(bomb)
 
 	return bomb.ID()
 }

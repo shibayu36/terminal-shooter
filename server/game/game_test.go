@@ -56,17 +56,26 @@ func Test_Game_StartUpdateLoop(t *testing.T) {
 	t.Run("updateが定期的に実行される", func(t *testing.T) {
 		game := NewGame(30, 30)
 
-		bulletID := game.AddBullet(Position{X: 0, Y: 0}, DirectionRight)
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.MovePlayer(playerID, Position{X: 0, Y: 0}, DirectionRight)
+		bulletID := game.ShootBullet(playerID)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		game.StartUpdateLoop(ctx)
+		updatedCh := game.StartUpdateLoop(ctx)
+
+		// 通知が詰まらないようにチャネルから取り出しておく
+		go func() {
+			for range updatedCh {
+			}
+		}()
 
 		time.Sleep(560 * time.Millisecond) // 約33回のtickが発生する時間
 
 		pos := game.Items[bulletID].Position()
-		assert.Positive(t, pos.X, "弾が移動していること")
+		assert.Equal(t, 2, pos.X, "弾が移動していること")
 	})
 
 	t.Run("contextのキャンセルでループが終了する", func(t *testing.T) {
@@ -75,7 +84,13 @@ func Test_Game_StartUpdateLoop(t *testing.T) {
 
 		bulletID := game.AddBullet(Position{X: 0, Y: 0}, DirectionRight)
 
-		game.StartUpdateLoop(ctx)
+		updatedCh := game.StartUpdateLoop(ctx)
+
+		// 通知が詰まらないようにチャネルから取り出しておく
+		go func() {
+			for range updatedCh {
+			}
+		}()
 
 		// キャンセル実行
 		cancel()
@@ -91,31 +106,37 @@ func Test_Game_update(t *testing.T) {
 		updatedCh := make(chan UpdatedResult, 10)
 		game := NewGame(30, 30)
 
+		playerID := PlayerID("player1")
+		game.AddPlayer(playerID)
+		game.MovePlayer(playerID, Position{X: 4, Y: 8}, DirectionLeft)
+
 		// 弾を追加
-		bulletID1 := game.AddBullet(Position{X: 3, Y: 8}, DirectionLeft)
+		bulletID1 := game.ShootBullet(playerID)
 		// 2回動かす
 		game.update(updatedCh)
 		game.update(updatedCh)
+		assert.Len(t, updatedCh, 1, "弾の追加が通知されている")
 
 		// 弾をもう一つ追加
-		bulletID2 := game.AddBullet(Position{X: 1, Y: 2}, DirectionUp)
+		game.MovePlayer(playerID, Position{X: 1, Y: 3}, DirectionUp)
+		bulletID2 := game.ShootBullet(playerID)
+		game.update(updatedCh)
+		assert.Len(t, updatedCh, 2, "弾の追加が通知されている")
 
-		// 28回動かすと、bullet1だけ動く
-		for range 28 {
+		// あと27回動かすと、bullet1だけ動く
+		for range 27 {
 			game.update(updatedCh)
 		}
 		assert.Equal(t, Position{X: 2, Y: 8}, game.Items[bulletID1].Position())
 		assert.Equal(t, Position{X: 1, Y: 2}, game.Items[bulletID2].Position())
-		// bullet1が更新されたので更新件数が1件になる
-		assert.Len(t, updatedCh, 1)
+		assert.Len(t, updatedCh, 3, "弾の追加x2 + 1回の更新で3件")
 
 		// さらに2回動かすと、bullet2が動く
 		game.update(updatedCh)
 		game.update(updatedCh)
 		assert.Equal(t, Position{X: 2, Y: 8}, game.Items[bulletID1].Position())
 		assert.Equal(t, Position{X: 1, Y: 1}, game.Items[bulletID2].Position())
-		// bullet2が更新されたので更新件数が2件になる
-		assert.Len(t, updatedCh, 2)
+		assert.Len(t, updatedCh, 4, "弾の追加x2 + 2回の更新で4件")
 	})
 
 	t.Run("ボムを配置して180回更新すると爆発する", func(t *testing.T) {
@@ -178,7 +199,9 @@ func Test_Game_update(t *testing.T) {
 		playerID := PlayerID("player1")
 		game.AddPlayer(playerID)
 		game.MovePlayer(playerID, Position{X: 2, Y: 3}, DirectionRight)
-		bulletID := game.AddBullet(Position{X: 1, Y: 3}, DirectionRight)
+		bulletID := game.ShootBullet(playerID)
+		// 当たるように移動しておく
+		game.MovePlayer(playerID, Position{X: 4, Y: 3}, DirectionRight)
 
 		game.update(updatedCh)
 
@@ -186,7 +209,7 @@ func Test_Game_update(t *testing.T) {
 		assert.Equal(t, PlayerStatusAlive, game.GetPlayers()[playerID].Status())
 		assert.Len(t, game.GetItems(), 1)
 		assert.Empty(t, game.GetRemovedItems())
-		assert.Empty(t, updatedCh)
+		assert.Len(t, updatedCh, 1, "弾の追加のみが通知される")
 
 		// 29回動くと弾が当たる
 		for range 29 {
@@ -196,7 +219,7 @@ func Test_Game_update(t *testing.T) {
 		assert.Empty(t, game.GetItems())
 		assert.Len(t, game.GetRemovedItems(), 1)
 		assert.NotEmpty(t, game.GetRemovedItems()[bulletID])
-		assert.Len(t, updatedCh, 2, "弾の更新とプレイヤーの更新の2件が通知される")
+		assert.Len(t, updatedCh, 3, "弾の追加、弾の更新とプレイヤーの更新の3件が通知される")
 	})
 }
 
