@@ -76,7 +76,6 @@ func (g *Game) StartUpdateLoop(ctx context.Context) <-chan UpdatedResult {
 			case <-ticker.C:
 				start := time.Now()
 				g.update(updatedCh)
-				g.flushAddedItems(updatedCh)
 				stats.GameLoopDuration.Observe(time.Since(start).Seconds())
 			case <-ctx.Done():
 				return
@@ -116,22 +115,20 @@ func (g *Game) update(updatedCh chan<- UpdatedResult) {
 		}
 	}
 
+	// 新しく追加されたアイテムがあれば追加してFlushする
+	g.mu.Lock()
+	for _, item := range g.AddedItems {
+		updatedItems = append(updatedItems, item)
+	}
+	g.AddedItems = make(map[ItemID]Item)
+	g.mu.Unlock()
+
 	if len(updatedItems) > 0 {
 		updatedCh <- UpdatedResult{Type: UpdatedResultTypeItemsUpdated}
 	}
 
 	if len(updatedPlayers) > 0 {
 		updatedCh <- UpdatedResult{Type: UpdatedResultTypePlayersUpdated}
-	}
-}
-
-// flushAddedItems 新しく追加されたアイテムがあればupdatedChに通知する
-func (g *Game) flushAddedItems(updatedCh chan<- UpdatedResult) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	if len(g.AddedItems) > 0 {
-		updatedCh <- UpdatedResult{Type: UpdatedResultTypeItemsUpdated}
-		g.AddedItems = make(map[ItemID]Item)
 	}
 }
 
