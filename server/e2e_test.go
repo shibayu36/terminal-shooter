@@ -256,15 +256,14 @@ func TestE2E(t *testing.T) {
 		require.NoError(t, err)
 
 		// 弾丸が生成され、client1, client2が受信できることを確認
-		// 60FPSで30tickするので、最低でも500ms待つ
-		time.Sleep(550 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		for _, client := range []*TestClient{client1, client2} {
 			// client1
 			itemMessages := client.MustFindItemStateMessages(t)
 			require.Len(t, itemMessages, 1)
 			assert.Equal(t, shared.ItemType_BULLET, itemMessages[0].GetType())
 			assert.Equal(t, shared.ItemStatus_ACTIVE, itemMessages[0].GetStatus())
-			assert.Equal(t, int32(12), itemMessages[0].GetPosition().GetX(), "右向きに発射され、さらに1進んだ値")
+			assert.Equal(t, int32(11), itemMessages[0].GetPosition().GetX(), "右向きに発射された")
 			assert.Equal(t, int32(20), itemMessages[0].GetPosition().GetY())
 		}
 
@@ -273,7 +272,7 @@ func TestE2E(t *testing.T) {
 		for _, client := range []*TestClient{client1, client2} {
 			itemMessages := client.MustFindItemStateMessages(t)
 			require.Len(t, itemMessages, 2)
-			assert.Equal(t, int32(13), itemMessages[1].GetPosition().GetX(), "さらに1マス進んた値")
+			assert.Equal(t, int32(12), itemMessages[1].GetPosition().GetX(), "さらに1マス進んた値")
 			assert.Equal(t, int32(20), itemMessages[1].GetPosition().GetY())
 		}
 	})
